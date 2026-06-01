@@ -20,4 +20,17 @@ class ItemRepositoryTest {
                 .extracting("name")
                 .containsExactlyInAnyOrder("Demo Item Alpha", "Demo Item Beta", "Demo Item Gamma");
     }
+
+    @Test
+    void searchByNameFindsMatchingItems() {
+        assertThat(itemRepository.searchByName("Alpha"))
+                .extracting("name")
+                .containsExactly("Demo Item Alpha");
+    }
+
+    @Test
+    void searchByNameTreatsInjectionTextAsData() {
+        assertThat(itemRepository.searchByName("' OR '1'='1"))
+                .isEmpty();
+    }
 }

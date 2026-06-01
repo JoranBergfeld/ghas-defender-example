@@ -2,6 +2,7 @@ package com.example.ghasdefender.web;
 
 import static org.hamcrest.Matchers.hasSize;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -53,5 +54,29 @@ class ItemControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.name").value("Created Item"))
                 .andExpect(jsonPath("$.description").value("Created through the API"));
+    }
+
+    @Test
+    void searchItemsReturnsRepositoryMatches() throws Exception {
+        when(itemRepository.searchByName("Alpha")).thenReturn(List.of(
+                new Item("Demo Item Alpha", "First clean demo item")
+        ));
+
+        mockMvc.perform(get("/api/items/search").param("q", "Alpha"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].name").value("Demo Item Alpha"));
+    }
+
+    @Test
+    void searchItemsPassesInjectionTextAsPlainQueryParameter() throws Exception {
+        String injection = "' OR '1'='1";
+        when(itemRepository.searchByName(injection)).thenReturn(List.of());
+
+        mockMvc.perform(get("/api/items/search").param("q", injection))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(0)));
+
+        verify(itemRepository).searchByName(injection);
     }
 }
