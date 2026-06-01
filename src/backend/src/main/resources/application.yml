@@ -1,0 +1,39 @@
+spring:
+  application:
+    name: ghas-defender-backend
+  profiles:
+    default: local
+  jpa:
+    open-in-view: false
+
+server:
+  port: 8080
+
+app:
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
+  security:
+    jwt:
+      signing-key: ${JWT_SIGNING_KEY:}
+
+---
+spring:
+  config:
+    activate:
+      on-profile: local
+  datasource:
+    url: jdbc:h2:mem:ghasdefender;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  flyway:
+    enabled: true
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+  h2:
+    console:
+      enabled: false
