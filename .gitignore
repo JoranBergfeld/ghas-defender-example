@@ -1,0 +1,47 @@
+# Java / Maven
+**/target/
+*.class
+*.log
+hs_err_pid*
+replay_pid*
+dependency-reduced-pom.xml
+.flattened-pom.xml
+
+# Node / npm / Vite
+**/node_modules/
+**/dist/
+**/coverage/
+**/.vite/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Bicep / ARM generated output
+infra/main.json
+infra/modules/*.json
+!infra/main.parameters.json
+
+# Azure Developer CLI local state
+.azure/
+.azd/
+
+# Local environment and secret material
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.pfx
+*.p12
+
+# IDEs and editors
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
