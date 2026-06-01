@@ -4,6 +4,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -11,20 +12,23 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.example.ghasdefender.config.SecurityConfig;
 import com.example.ghasdefender.domain.Item;
 import com.example.ghasdefender.repo.ItemRepository;
+import com.example.ghasdefender.security.JwtAuthenticationFilter;
+import com.example.ghasdefender.security.JwtService;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(ItemController.class)
-@AutoConfigureMockMvc(addFilters = false)
+@Import({SecurityConfig.class, JwtAuthenticationFilter.class})
 class ItemControllerTest {
 
     @Autowired
@@ -32,6 +36,9 @@ class ItemControllerTest {
 
     @MockBean
     private ItemRepository itemRepository;
+
+    @MockBean
+    private JwtService jwtService;
 
     @Test
     void listItemsReturnsAllItems() throws Exception {
@@ -48,10 +55,19 @@ class ItemControllerTest {
     }
 
     @Test
-    void createItemPersistsAndReturnsItem() throws Exception {
+    void createItemRequiresAuthentication() throws Exception {
+        mockMvc.perform(post("/api/items")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Created Item\",\"description\":\"Created through the API\"}"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void createItemPersistsAndReturnsItemForAuthenticatedUser() throws Exception {
         when(itemRepository.save(any(Item.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         mockMvc.perform(post("/api/items")
+                        .with(user("demo"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"Created Item\",\"description\":\"Created through the API\"}"))
                 .andExpect(status().isCreated())
@@ -84,12 +100,21 @@ class ItemControllerTest {
     }
 
     @Test
-    void updateItemChangesExistingItem() throws Exception {
+    void updateItemRequiresAuthentication() throws Exception {
+        mockMvc.perform(put("/api/items/42")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Updated Name\",\"description\":\"Updated description\"}"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void updateItemChangesExistingItemForAuthenticatedUser() throws Exception {
         Item existing = new Item("Old Name", "Old description");
         when(itemRepository.findById(42L)).thenReturn(Optional.of(existing));
         when(itemRepository.save(any(Item.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         mockMvc.perform(put("/api/items/42")
+                        .with(user("demo"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"Updated Name\",\"description\":\"Updated description\"}"))
                 .andExpect(status().isOk())
@@ -102,16 +127,23 @@ class ItemControllerTest {
         when(itemRepository.findById(404L)).thenReturn(Optional.empty());
 
         mockMvc.perform(put("/api/items/404")
+                        .with(user("demo"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"Updated Name\",\"description\":\"Updated description\"}"))
                 .andExpect(status().isNotFound());
     }
 
     @Test
-    void deleteItemRemovesExistingItem() throws Exception {
+    void deleteItemRequiresAuthentication() throws Exception {
+        mockMvc.perform(delete("/api/items/42"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void deleteItemRemovesExistingItemForAuthenticatedUser() throws Exception {
         when(itemRepository.existsById(42L)).thenReturn(true);
 
-        mockMvc.perform(delete("/api/items/42"))
+        mockMvc.perform(delete("/api/items/42").with(user("demo")))
                 .andExpect(status().isNoContent());
 
         verify(itemRepository).deleteById(42L);
@@ -121,7 +153,7 @@ class ItemControllerTest {
     void deleteItemReturnsNotFoundForMissingItem() throws Exception {
         when(itemRepository.existsById(404L)).thenReturn(false);
 
-        mockMvc.perform(delete("/api/items/404"))
+        mockMvc.perform(delete("/api/items/404").with(user("demo")))
                 .andExpect(status().isNotFound());
     }
 }
