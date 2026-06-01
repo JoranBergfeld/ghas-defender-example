@@ -4,14 +4,17 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.example.ghasdefender.domain.Item;
 import com.example.ghasdefender.repo.ItemRepository;
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -78,5 +81,47 @@ class ItemControllerTest {
                 .andExpect(jsonPath("$", hasSize(0)));
 
         verify(itemRepository).searchByName(injection);
+    }
+
+    @Test
+    void updateItemChangesExistingItem() throws Exception {
+        Item existing = new Item("Old Name", "Old description");
+        when(itemRepository.findById(42L)).thenReturn(Optional.of(existing));
+        when(itemRepository.save(any(Item.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        mockMvc.perform(put("/api/items/42")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Updated Name\",\"description\":\"Updated description\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("Updated Name"))
+                .andExpect(jsonPath("$.description").value("Updated description"));
+    }
+
+    @Test
+    void updateItemReturnsNotFoundForMissingItem() throws Exception {
+        when(itemRepository.findById(404L)).thenReturn(Optional.empty());
+
+        mockMvc.perform(put("/api/items/404")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Updated Name\",\"description\":\"Updated description\"}"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void deleteItemRemovesExistingItem() throws Exception {
+        when(itemRepository.existsById(42L)).thenReturn(true);
+
+        mockMvc.perform(delete("/api/items/42"))
+                .andExpect(status().isNoContent());
+
+        verify(itemRepository).deleteById(42L);
+    }
+
+    @Test
+    void deleteItemReturnsNotFoundForMissingItem() throws Exception {
+        when(itemRepository.existsById(404L)).thenReturn(false);
+
+        mockMvc.perform(delete("/api/items/404"))
+                .andExpect(status().isNotFound());
     }
 }
