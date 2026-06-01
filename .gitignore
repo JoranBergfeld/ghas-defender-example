@@ -12,6 +12,9 @@ dependency-reduced-pom.xml
 **/dist/
 **/coverage/
 **/.vite/
+**/*.tsbuildinfo
+src/frontend/vite.config.d.ts
+src/frontend/vite.config.js
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
