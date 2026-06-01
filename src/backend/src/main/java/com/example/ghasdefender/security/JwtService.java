@@ -7,7 +7,9 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import javax.crypto.SecretKey;
+import org.springframework.stereotype.Service;
 
+@Service
 public class JwtService {
 
     private final SecretKey signingKey;
