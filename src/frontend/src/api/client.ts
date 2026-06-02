@@ -1,4 +1,4 @@
-import axios, { AxiosHeaders } from 'axios';
+import axios from 'axios';
 
 export const AUTH_TOKEN_STORAGE_KEY = 'auth_token';
 
@@ -14,9 +14,10 @@ apiClient.interceptors.request.use((config) => {
     typeof window === 'undefined' ? null : window.localStorage.getItem(AUTH_TOKEN_STORAGE_KEY);
 
   if (token) {
-    const headers = AxiosHeaders.from(config.headers);
-    headers.set('Authorization', `Bearer ${token}`);
-    config.headers = headers;
+    config.headers = {
+      ...(config.headers ?? {}),
+      Authorization: `Bearer ${token}`,
+    };
   }
 
   return config;

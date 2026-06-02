@@ -31,13 +31,7 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
-        <dependency>
-      <!-- SEEDED VULN #5 — see scripts/seed-vulnerabilities.md -->
-      <groupId>org.springframework</groupId>
-      <artifactId>spring-core</artifactId>
-      <version>5.3.18</version>
-    </dependency>
-    </dependencies>
+        </dependencies>
     </dependencyManagement>
 
     <dependencies>
@@ -102,6 +96,12 @@
             <artifactId>jjwt-jackson</artifactId>
             <version>${jjwt.version}</version>
             <scope>runtime</scope>
+        </dependency>
+        <!-- SEEDED VULN #5 — see scripts/seed-vulnerabilities.md -->
+        <dependency>
+            <groupId>commons-fileupload</groupId>
+            <artifactId>commons-fileupload</artifactId>
+            <version>1.3.1</version>
         </dependency>
         <dependency>
             <groupId>com.h2database</groupId>

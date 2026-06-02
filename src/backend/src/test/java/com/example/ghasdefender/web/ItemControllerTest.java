@@ -21,6 +21,8 @@ import com.example.ghasdefender.domain.Item;
 import com.example.ghasdefender.repo.ItemRepository;
 import com.example.ghasdefender.security.JwtAuthenticationFilter;
 import com.example.ghasdefender.security.JwtService;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.Query;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
@@ -44,6 +46,10 @@ class ItemControllerTest {
 
     @MockBean
     private JwtService jwtService;
+
+    // SEEDED VULN #1 — see scripts/seed-vulnerabilities.md
+    @MockBean
+    private EntityManager entityManager;
 
     @Test
     void corsPreflightAllowsLocalFrontendOrigin() throws Exception {
@@ -91,7 +97,11 @@ class ItemControllerTest {
 
     @Test
     void searchItemsReturnsRepositoryMatches() throws Exception {
-        when(itemRepository.searchByName("Alpha")).thenReturn(List.of(
+        // SEEDED VULN #1 — controller now uses native query, not the safe repository method
+        Query nativeQuery = org.mockito.Mockito.mock(Query.class);
+        when(entityManager.createNativeQuery(any(String.class), org.mockito.ArgumentMatchers.eq(Item.class)))
+                .thenReturn(nativeQuery);
+        when(nativeQuery.getResultList()).thenReturn(List.of(
                 new Item("Demo Item Alpha", "First clean demo item")
         ));
 
@@ -103,14 +113,22 @@ class ItemControllerTest {
 
     @Test
     void searchItemsPassesInjectionTextAsPlainQueryParameter() throws Exception {
+        // SEEDED VULN #1 — assert the native query string concatenates user input verbatim
         String injection = "' OR '1'='1";
-        when(itemRepository.searchByName(injection)).thenReturn(List.of());
+        Query nativeQuery = org.mockito.Mockito.mock(Query.class);
+        when(entityManager.createNativeQuery(
+                org.mockito.ArgumentMatchers.contains(injection),
+                org.mockito.ArgumentMatchers.eq(Item.class)))
+                .thenReturn(nativeQuery);
+        when(nativeQuery.getResultList()).thenReturn(List.of());
 
         mockMvc.perform(get("/api/items/search").param("q", injection))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(0)));
 
-        verify(itemRepository).searchByName(injection);
+        verify(entityManager).createNativeQuery(
+                org.mockito.ArgumentMatchers.contains(injection),
+                org.mockito.ArgumentMatchers.eq(Item.class));
     }
 
     @Test

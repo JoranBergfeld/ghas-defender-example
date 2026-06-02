@@ -45,16 +45,16 @@ class JwtServiceTest {
 
     @Test
     void emptyConfiguredKeyFailsFast() {
-        assertThatThrownBy(() -> new JwtConfig().localJwtSigningKey(""))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("JWT signing key must decode to at least 32 bytes");
+        // SEEDED VULN #3 — seeded JwtConfig#localJwtSigningKey returns hardcoded key
+        // regardless of input; assertion adjusted to confirm the insecure behavior.
+        SecretKey key = new JwtConfig().localJwtSigningKey("");
+        assertThat(key).isNotNull();
     }
 
     @Test
     void shortConfiguredKeyFailsFast() {
-        // c2hvcnQ= is base64 for "short" (5 bytes), well under the 32-byte minimum.
-        assertThatThrownBy(() -> new JwtConfig().localJwtSigningKey("c2hvcnQ="))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("JWT signing key must decode to at least 32 bytes");
+        // SEEDED VULN #3 — same as above; seeded code no longer validates the input key.
+        SecretKey key = new JwtConfig().localJwtSigningKey("c2hvcnQ=");
+        assertThat(key).isNotNull();
     }
 }

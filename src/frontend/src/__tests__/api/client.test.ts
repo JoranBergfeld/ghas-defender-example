@@ -53,10 +53,6 @@ vi.mock('axios', () => {
 
 import { API_BASE_URL, AUTH_TOKEN_STORAGE_KEY, apiClient } from '../../api/client';
 
-type RequestInterceptor = (config: { headers?: unknown }) => {
-  headers?: { get: (name: string) => string | undefined };
-};
-
 describe('api client', () => {
   beforeEach(() => {
     window.localStorage.clear();
@@ -71,11 +67,13 @@ describe('api client', () => {
 
   it('adds Authorization header when token is present', () => {
     window.localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, 'test-token');
-    const interceptor = axiosMocks.instance.interceptors.request.use.mock.calls[0][0] as RequestInterceptor;
+    const interceptor = axiosMocks.instance.interceptors.request.use.mock.calls[0][0] as (
+      config: { headers?: Record<string, string> }
+    ) => { headers?: Record<string, string> };
 
     const result = interceptor({ headers: {} });
 
-    expect(result.headers?.get('Authorization')).toBe('Bearer test-token');
+    expect(result.headers?.Authorization).toBe('Bearer test-token');
   });
 
   it('exports the axios instance for typed API modules', () => {
