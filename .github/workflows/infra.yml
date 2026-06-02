@@ -17,6 +17,7 @@ on:
     paths:
       - 'infra/**'
       - 'azure.yaml'
+  workflow_dispatch:
 
 env:
   AZURE_ENV_NAME: ghasdemo

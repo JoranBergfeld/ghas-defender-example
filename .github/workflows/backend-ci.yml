@@ -17,6 +17,7 @@ on:
     paths:
       - 'src/backend/**'
       - '.github/workflows/backend-ci.yml'
+  workflow_dispatch:
 
 env:
   AZURE_ENV_NAME: ghasdemo
