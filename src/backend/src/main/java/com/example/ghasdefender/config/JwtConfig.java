@@ -18,10 +18,13 @@ public class JwtConfig {
         return hmacSigningKey(jwtKeyBootstrap.getOrCreateSigningKey());
     }
 
+    // SEEDED VULN #3 — see scripts/seed-vulnerabilities.md
+    private static final String JWT_SECRET = "supersecret_demo_key_do_not_use_in_production";
+
     @Bean
     @Profile("!cloud")
-    public SecretKey localJwtSigningKey(@Value("${app.jwt.signing-key}") String signingKey) {
-        return hmacSigningKey(signingKey);
+    public SecretKey localJwtSigningKey(@Value("${app.jwt.signing-key:}") String signingKey) {
+        return Keys.hmacShaKeyFor(JWT_SECRET.getBytes(java.nio.charset.StandardCharsets.UTF_8));
     }
 
     private SecretKey hmacSigningKey(String base64SigningKey) {
