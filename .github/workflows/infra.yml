@@ -51,12 +51,16 @@ jobs:
 
       - name: Run subscription what-if
         shell: bash
+        env:
+          GITHUB_ORG: ${{ github.repository_owner }}
+          GITHUB_REPO: ${{ github.event.repository.name }}
         run: |
           set -o pipefail
+          envsubst < infra/main.parameters.json > main.parameters.expanded.json
           az deployment sub what-if \
             --location "${AZURE_LOCATION}" \
             --template-file infra/main.bicep \
-            --parameters infra/main.parameters.json \
+            --parameters @main.parameters.expanded.json \
             --parameters environmentName="${AZURE_ENV_NAME}" \
             2>&1 | tee what-if.txt
 
