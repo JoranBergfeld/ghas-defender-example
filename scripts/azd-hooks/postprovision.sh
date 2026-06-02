@@ -34,6 +34,9 @@ print(pattern.sub(replace, text), end="")
 PY
 }
 
+CERT_MANAGER_VERSION="v1.15.3"
+LETSENCRYPT_EMAIL="${LETSENCRYPT_EMAIL:-demo@ghas-defender.example.invalid}"
+
 require_env AZURE_RESOURCE_GROUP
 require_env AZURE_AKS_CLUSTER_NAME
 require_env AZURE_BACKEND_IDENTITY_CLIENT_ID
@@ -63,7 +66,6 @@ kubelogin convert-kubeconfig -l azurecli
 kubectl apply -f src/backend/k8s/namespace.yaml
 render_template src/backend/k8s/serviceaccount.tmpl.yaml | kubectl apply -f -
 kubectl apply -f src/backend/k8s/service.yaml
-kubectl apply -f src/backend/k8s/ingress.yaml
 
 SWA_HOSTNAME="$(az staticwebapp show \
   --resource-group "$AZURE_RESOURCE_GROUP" \
@@ -78,10 +80,17 @@ fi
 
 azd env set AZURE_STATIC_WEB_APP_HOSTNAME "$SWA_HOSTNAME"
 
+LOCATION="$(az group show --name "$AZURE_RESOURCE_GROUP" --query location --output tsv)"
+DNS_LABEL="ghas-defender-$(printf '%s' "$AZURE_RESOURCE_GROUP" | md5sum | cut -c1-10)"
+
+kubectl annotate service nginx -n app-routing-system \
+  "service.beta.kubernetes.io/azure-dns-label-name=${DNS_LABEL}" \
+  --overwrite >/dev/null
+
 INGRESS_IP=""
 ATTEMPTS=60
 while [ "$ATTEMPTS" -gt 0 ]; do
-  INGRESS_IP="$(kubectl get ingress backend -n app -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || true)"
+  INGRESS_IP="$(kubectl get service nginx -n app-routing-system -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || true)"
   if [ -n "$INGRESS_IP" ]; then
     break
   fi
@@ -90,17 +99,10 @@ while [ "$ATTEMPTS" -gt 0 ]; do
 done
 
 if [ -z "$INGRESS_IP" ]; then
-  echo "Ingress IP was not assigned within 5 minutes" >&2
-  kubectl get ingress backend -n app -o wide || true
+  echo "App Routing nginx LoadBalancer IP was not assigned within 5 minutes" >&2
+  kubectl get service nginx -n app-routing-system -o wide || true
   exit 1
 fi
-
-LOCATION="$(az group show --name "$AZURE_RESOURCE_GROUP" --query location --output tsv)"
-DNS_LABEL="ghas-defender-$(printf '%s' "$AZURE_RESOURCE_GROUP" | md5sum | cut -c1-10)"
-
-kubectl annotate service nginx -n app-routing-system \
-  "service.beta.kubernetes.io/azure-dns-label-name=${DNS_LABEL}" \
-  --overwrite >/dev/null
 
 INGRESS_FQDN=""
 ATTEMPTS=24
@@ -121,7 +123,53 @@ fi
 
 azd env set AZURE_BACKEND_INGRESS_IP "$INGRESS_IP"
 azd env set AZURE_BACKEND_INGRESS_HOSTNAME "$INGRESS_FQDN"
-azd env set VITE_API_BASE_URL "http://${INGRESS_FQDN}/api"
+azd env set VITE_API_BASE_URL "https://${INGRESS_FQDN}"
+export AZURE_BACKEND_INGRESS_HOSTNAME="$INGRESS_FQDN"
+
+echo "Installing cert-manager ${CERT_MANAGER_VERSION}..."
+kubectl apply -f "https://github.com/cert-manager/cert-manager/releases/download/${CERT_MANAGER_VERSION}/cert-manager.yaml" >/dev/null
+kubectl -n cert-manager rollout status deploy/cert-manager --timeout=180s >/dev/null
+kubectl -n cert-manager rollout status deploy/cert-manager-cainjector --timeout=180s >/dev/null
+kubectl -n cert-manager rollout status deploy/cert-manager-webhook --timeout=180s >/dev/null
+
+cat <<YAML | kubectl apply -f -
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: ${LETSENCRYPT_EMAIL}
+    privateKeySecretRef:
+      name: letsencrypt-prod-account
+    solvers:
+      - http01:
+          ingress:
+            ingressClassName: webapprouting.kubernetes.azure.com
+YAML
+
+render_template src/backend/k8s/ingress.tmpl.yaml | kubectl apply -f -
+
+echo "Waiting up to 5 minutes for Let's Encrypt cert (backend-tls)..."
+ATTEMPTS=60
+CERT_READY=""
+while [ "$ATTEMPTS" -gt 0 ]; do
+  CERT_READY="$(kubectl get certificate backend-tls -n app -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null || true)"
+  if [ "$CERT_READY" = "True" ]; then
+    break
+  fi
+  ATTEMPTS=$((ATTEMPTS - 1))
+  sleep 5
+done
+
+if [ "$CERT_READY" != "True" ]; then
+  echo "WARNING: backend-tls certificate not Ready yet; HTTPS may be unavailable until cert-manager finishes" >&2
+  kubectl describe certificate backend-tls -n app || true
+  kubectl get challenge -n app || true
+else
+  echo "Let's Encrypt certificate backend-tls is Ready"
+fi
 
 if kubectl get deployment backend -n app >/dev/null 2>&1; then
   echo "Restarting backend deployment so it picks up rotated KeyVault secrets..."
@@ -129,5 +177,5 @@ if kubectl get deployment backend -n app >/dev/null 2>&1; then
   kubectl rollout status deployment/backend -n app --timeout=180s || true
 fi
 
-echo "Configured VITE_API_BASE_URL=http://${INGRESS_FQDN}/api"
+echo "Configured VITE_API_BASE_URL=https://${INGRESS_FQDN}"
 echo "Configured AZURE_STATIC_WEB_APP_HOSTNAME=$SWA_HOSTNAME"

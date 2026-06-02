@@ -39,6 +39,16 @@ services:
     language: ts
     host: staticwebapp
     dist: dist
+    hooks:
+      predeploy:
+        posix:
+          shell: sh
+          run: ../../scripts/azd-hooks/predeploy-frontend.sh
+          interactive: false
+        windows:
+          shell: pwsh
+          run: ../../scripts/azd-hooks/predeploy-frontend.ps1
+          interactive: false
 hooks:
   postprovision:
     posix:

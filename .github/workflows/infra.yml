@@ -9,14 +9,6 @@ on:
     paths:
       - 'infra/**'
       - 'azure.yaml'
-  push:
-    branches:
-      - main
-      - secure
-      - vulnerable
-    paths:
-      - 'infra/**'
-      - 'azure.yaml'
   workflow_dispatch:
 
 env:
@@ -108,61 +100,3 @@ jobs:
         with:
           category: /language:actions
           upload: true
-
-  provision:
-    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: read
-    concurrency:
-      group: infra-provision-${{ github.ref_name }}
-      cancel-in-progress: false
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: azure/login@v2
-        with:
-          client-id: ${{ vars.AZURE_CLIENT_ID }}
-          tenant-id: ${{ vars.AZURE_TENANT_ID }}
-          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
-
-      - uses: Azure/setup-azd@v2
-
-      - name: Authenticate azd with federated credentials
-        shell: bash
-        run: |
-          azd auth login \
-            --client-id "${{ vars.AZURE_CLIENT_ID }}" \
-            --federated-credential-provider github \
-            --tenant-id "${{ vars.AZURE_TENANT_ID }}"
-
-      - name: Prepare azd environment
-        shell: bash
-        run: |
-          azd env new "${AZURE_ENV_NAME}" --no-prompt || azd env select "${AZURE_ENV_NAME}"
-          azd env set AZURE_LOCATION "${AZURE_LOCATION}"
-          azd env set AZURE_SUBSCRIPTION_ID "${{ vars.AZURE_SUBSCRIPTION_ID }}"
-          azd env set AZURE_TENANT_ID "${{ vars.AZURE_TENANT_ID }}"
-          principal_id="$(az ad sp show --id "${{ vars.AZURE_CLIENT_ID }}" --query id -o tsv)"
-          azd env set AZURE_PRINCIPAL_ID "${principal_id}"
-          azd env set AZURE_PRINCIPAL_TYPE ServicePrincipal
-
-      - name: Override CI-only Bicep params
-        shell: bash
-        run: |
-          python3 - <<'PY'
-          import json
-          path = 'infra/main.parameters.json'
-          with open(path) as fh:
-              data = json.load(fh)
-          data['parameters']['createGhaDeployerSubscriptionRoles'] = { 'value': False }
-          data['parameters']['createGhaDeployerResourceRoles'] = { 'value': False }
-          data['parameters']['createDeveloperAndOperatorRoles'] = { 'value': False }
-          with open(path, 'w') as fh:
-              json.dump(data, fh, indent=2)
-              fh.write('\n')
-          PY
-
-      - name: Provision Azure resources
-        run: azd provision --no-prompt

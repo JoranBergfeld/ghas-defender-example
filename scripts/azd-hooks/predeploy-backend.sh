@@ -69,7 +69,6 @@ kubelogin convert-kubeconfig -l azurecli
 kubectl apply -f src/backend/k8s/namespace.yaml
 render_template src/backend/k8s/serviceaccount.tmpl.yaml | kubectl apply -f -
 kubectl apply -f src/backend/k8s/service.yaml
-kubectl apply -f src/backend/k8s/ingress.yaml
 
 if kubectl get job flyway-init -n app >/dev/null 2>&1; then
   kubectl delete job flyway-init -n app --wait=true
