@@ -157,6 +157,7 @@ jobs:
           with open(path) as fh:
               data = json.load(fh)
           data['parameters']['createGhaDeployerSubscriptionRoles'] = { 'value': False }
+          data['parameters']['createGhaDeployerResourceRoles'] = { 'value': False }
           with open(path, 'w') as fh:
               json.dump(data, fh, indent=2)
               fh.write('\n')

@@ -2,6 +2,7 @@ targetScope = 'resourceGroup'
 
 param environmentName string
 param ghaDeployerPrincipalId string
+param createGhaDeployerRoles bool = true
 param staticWebAppLocation string = 'westeurope'
 
 var staticWebAppName = 'swa-${environmentName}'
@@ -20,7 +21,7 @@ resource staticWebApp 'Microsoft.Web/staticSites@2023-12-01' = {
   properties: {}
 }
 
-resource ghaStaticWebAppsContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+resource ghaStaticWebAppsContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (createGhaDeployerRoles) {
   scope: staticWebApp
   name: guid(staticWebApp.id, 'id-gha-deployer', staticWebAppsContributorRoleDefinitionId)
   properties: {

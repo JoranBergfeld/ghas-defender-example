@@ -28,6 +28,9 @@ param githubConnectorHierarchyId string = ''
 @description('When true (local-first deploy) Bicep creates the Contributor and User Access Administrator role assignments needed by the gha-deployer managed identity. When false (subsequent CI runs) Bicep skips them because the same principal is already running the deployment and the assignments cannot be reconciled by name afterwards.')
 param createGhaDeployerSubscriptionRoles bool = true
 
+@description('When true (local-first deploy) Bicep creates the resource-scoped role assignments (AKS RBAC, AcrPush, KV access, SWA Contributor) for the gha-deployer managed identity. When false (CI runs) Bicep skips them — they were created during the initial local azd up and re-evaluating guid() drifts the assignment names which Azure rejects.')
+param createGhaDeployerResourceRoles bool = true
+
 var resourceGroupName = 'rg-ghas-defender-${environmentName}'
 var ghaDeployerName = 'id-gha-deployer'
 var contributorRoleDefinitionId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')
@@ -110,6 +113,7 @@ module aks 'modules/aks.bicep' = {
   params: {
     aksSubnetId: network.outputs.aksSubnetId
     backendIdentityName: identity.outputs.backendIdentityName
+    createGhaDeployerRoles: createGhaDeployerResourceRoles
     environmentName: environmentName
     ghaDeployerPrincipalId: identity.outputs.ghaDeployerPrincipalId
     location: location
@@ -124,6 +128,7 @@ module acr 'modules/acr.bicep' = {
   scope: resourceGroup
   params: {
     backendPrincipalId: identity.outputs.backendPrincipalId
+    createGhaDeployerRoles: createGhaDeployerResourceRoles
     developerPrincipalId: principalId
     developerPrincipalType: principalType
     environmentName: environmentName
@@ -151,6 +156,7 @@ module staticWebApp 'modules/swa.bicep' = {
   name: 'swa-${environmentName}'
   scope: resourceGroup
   params: {
+    createGhaDeployerRoles: createGhaDeployerResourceRoles
     environmentName: environmentName
     ghaDeployerPrincipalId: identity.outputs.ghaDeployerPrincipalId
   }
