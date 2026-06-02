@@ -156,6 +156,13 @@ jobs:
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
           subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
 
+      - name: Install kubectl and kubelogin
+        shell: bash
+        run: |
+          sudo az aks install-cli
+          kubelogin --version
+          kubectl version --client
+
       - uses: Azure/setup-azd@v2
 
       - name: Authenticate azd with federated credentials
