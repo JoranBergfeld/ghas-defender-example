@@ -35,7 +35,10 @@ PY
 }
 
 CERT_MANAGER_VERSION="v1.15.3"
-LETSENCRYPT_EMAIL="${LETSENCRYPT_EMAIL:-demo@ghas-defender.example.invalid}"
+# If LETSENCRYPT_EMAIL is unset, the ClusterIssuer is created without a contact email.
+# LE rejects placeholder domains (example.com, *.invalid, *.test). Set to a real email
+# you control (or omit entirely) before running `azd up` in production.
+LETSENCRYPT_EMAIL="${LETSENCRYPT_EMAIL:-}"
 
 require_env AZURE_RESOURCE_GROUP
 require_env AZURE_AKS_CLUSTER_NAME
@@ -59,9 +62,8 @@ fi
 az aks get-credentials \
   --resource-group "$AZURE_RESOURCE_GROUP" \
   --name "$AZURE_AKS_CLUSTER_NAME" \
-  --overwrite-existing
-
-kubelogin convert-kubeconfig -l azurecli
+  --overwrite-existing \
+  --admin
 
 kubectl apply -f src/backend/k8s/namespace.yaml
 render_template src/backend/k8s/serviceaccount.tmpl.yaml | kubectl apply -f -
@@ -132,6 +134,12 @@ kubectl -n cert-manager rollout status deploy/cert-manager --timeout=180s >/dev/
 kubectl -n cert-manager rollout status deploy/cert-manager-cainjector --timeout=180s >/dev/null
 kubectl -n cert-manager rollout status deploy/cert-manager-webhook --timeout=180s >/dev/null
 
+if [ -n "${LETSENCRYPT_EMAIL}" ]; then
+  ACME_EMAIL_LINE="    email: ${LETSENCRYPT_EMAIL}"
+else
+  ACME_EMAIL_LINE=""
+fi
+
 cat <<YAML | kubectl apply -f -
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
@@ -140,7 +148,7 @@ metadata:
 spec:
   acme:
     server: https://acme-v02.api.letsencrypt.org/directory
-    email: ${LETSENCRYPT_EMAIL}
+${ACME_EMAIL_LINE}
     privateKeySecretRef:
       name: letsencrypt-prod-account
     solvers:

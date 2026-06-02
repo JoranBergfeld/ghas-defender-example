@@ -49,9 +49,8 @@ if (-not (Get-Command kubelogin -ErrorAction SilentlyContinue) -or -not (Get-Com
 az aks get-credentials `
     --resource-group $env:AZURE_RESOURCE_GROUP `
     --name $env:AZURE_AKS_CLUSTER_NAME `
-    --overwrite-existing
-
-kubelogin convert-kubeconfig -l azurecli
+    --overwrite-existing `
+    --admin
 
 kubectl apply -f src/backend/k8s/namespace.yaml
 Expand-AzdTemplate "src/backend/k8s/serviceaccount.tmpl.yaml" | kubectl apply -f -
@@ -62,7 +61,7 @@ if (-not [string]::IsNullOrWhiteSpace($existingJob)) {
     kubectl delete job flyway-init -n app --wait=true
 }
 
-Expand-AzdTemplate "src/backend/k8s/flyway-job.tmpl.yaml" | kubectl apply -f -
+Expand-AzdTemplate "src/backend/k8s-jobs/flyway-job.tmpl.yaml" | kubectl apply -f -
 
 kubectl wait --for=condition=complete job/flyway-init -n app --timeout=300s
 if ($LASTEXITCODE -ne 0) {
