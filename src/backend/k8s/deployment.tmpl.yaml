@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: app
+  labels:
+    app.kubernetes.io/name: backend
+    app.kubernetes.io/part-of: ghas-defender-example
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: backend
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: backend
+        app.kubernetes.io/part-of: ghas-defender-example
+        azure.workload.identity/use: "true"
+    spec:
+      serviceAccountName: backend
+      containers:
+        - name: backend
+          image: "{{ .Env.SERVICE_BACKEND_IMAGE_NAME }}"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: cloud
+            - name: POSTGRES_HOST
+              value: "{{ .Env.AZURE_POSTGRES_HOST }}"
+            - name: POSTGRES_DATABASE
+              value: appdb
+            - name: POSTGRES_USERNAME
+              value: app
+            - name: AZURE_KEY_VAULT_URI
+              value: "{{ .Env.AZURE_KEY_VAULT_URI }}"
+            - name: CORS_ALLOWED_ORIGINS
+              value: "https://{{ .Env.AZURE_STATIC_WEB_APP_HOSTNAME }}"
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8080
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            initialDelaySeconds: 60
+            periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 200m
+              memory: 512Mi
+            limits:
+              cpu: 500m
+              memory: 1Gi

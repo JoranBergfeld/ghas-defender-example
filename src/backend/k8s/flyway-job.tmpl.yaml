@@ -1,0 +1,52 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: flyway-init
+  namespace: app
+  labels:
+    app.kubernetes.io/name: flyway-init
+    app.kubernetes.io/part-of: ghas-defender-example
+spec:
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: flyway-init
+        app.kubernetes.io/part-of: ghas-defender-example
+        azure.workload.identity/use: "true"
+    spec:
+      serviceAccountName: backend
+      restartPolicy: OnFailure
+      containers:
+        - name: flyway
+          image: "{{ .Env.SERVICE_BACKEND_IMAGE_NAME }}"
+          imagePullPolicy: IfNotPresent
+          command:
+            - java
+          args:
+            - -jar
+            - /app/app.jar
+            - --spring.main.web-application-type=none
+            - --spring.flyway.enabled=true
+            - --spring.jpa.hibernate.ddl-auto=none
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: cloud
+            - name: POSTGRES_HOST
+              value: "{{ .Env.AZURE_POSTGRES_HOST }}"
+            - name: POSTGRES_DATABASE
+              value: appdb
+            - name: POSTGRES_USERNAME
+              value: app
+            - name: AZURE_KEY_VAULT_URI
+              value: "{{ .Env.AZURE_KEY_VAULT_URI }}"
+            - name: CORS_ALLOWED_ORIGINS
+              value: "https://{{ .Env.AZURE_STATIC_WEB_APP_HOSTNAME }}"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
