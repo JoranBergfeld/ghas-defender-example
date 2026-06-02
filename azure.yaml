@@ -1,16 +1,28 @@
 name: ghas-defender-example
 metadata:
   template: ghas-defender-example@1.0.0
-
-# Plan 5 will add backend and frontend service definitions.
-services: {}
-
-# Plan 5 will enable azd hooks after scripts/azd-hooks contains executable hook scripts.
-# hooks:
-#   postprovision:
-#     posix:
-#       shell: sh
-#       run: ./scripts/azd-hooks/postprovision.sh
-#     windows:
-#       shell: pwsh
-#       run: ./scripts/azd-hooks/postprovision.ps1
+infra:
+  provider: bicep
+  path: ./infra
+  module: main
+services:
+  backend:
+    project: ./src/backend
+    language: java
+    host: aks
+    docker:
+      path: ./Dockerfile
+      context: .
+  frontend:
+    project: ./src/frontend
+    language: ts
+    host: staticwebapp
+    dist: dist
+hooks:
+  postprovision:
+    posix:
+      shell: sh
+      run: ./scripts/azd-hooks/postprovision.sh
+    windows:
+      shell: pwsh
+      run: ./scripts/azd-hooks/postprovision.ps1
