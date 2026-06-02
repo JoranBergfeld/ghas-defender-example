@@ -3,41 +3,22 @@ set -euo pipefail
 
 target_file="src/backend/src/main/resources/application-local.yml"
 
-token_body="$(python3 - <<'PY'
-import secrets
-import string
-import zlib
+# Use canonical AWS EXAMPLE keys. GitHub Secret Scanning reliably detects the
+# pattern "Amazon AWS Access Key ID" + "Amazon AWS Secret Access Key" without
+# any provider-side checksum requirement, so push protection will reject the
+# push. The "EXAMPLE" suffix on the secret marks it as a documented test value
+# that AWS itself publishes for tutorials.
+access_key_id="AKIAIOSFODNN7EXAMPLE"
+secret_access_key="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
 
-alphabet = string.ascii_letters + string.digits
-
-
-def base62(value: int) -> str:
-    if value == 0:
-        return alphabet[0]
-    chars = []
-    while value:
-        value, remainder = divmod(value, 62)
-        chars.append(alphabet[remainder])
-    return "".join(reversed(chars))
-
-
-# GitHub classic PAT format: "ghp_" + 30 random base62 chars + 6-char CRC32 checksum (base62, padded).
-prefix = "".join(secrets.choice(alphabet) for _ in range(30))
-checksum = base62(zlib.crc32(prefix.encode("ascii"))).rjust(6, "0")
-print(prefix + checksum)
-PY
-)"
-token="ghp_${token_body}"
-
-python3 - "${target_file}" "${token}" <<'PY'
+python3 - "${target_file}" "${access_key_id}" "${secret_access_key}" <<'PY'
 from pathlib import Path
 import sys
 
 path = Path(sys.argv[1])
-token = sys.argv[2]
+access_key_id = sys.argv[2]
+secret_access_key = sys.argv[3]
 label = " # SEEDED VULN #4 — see scripts/seed-vulnerabilities.md"
-key = "leakedGitHubPat:"
-replacement_value = f'{key} "{token}"{label}'
 
 path.parent.mkdir(parents=True, exist_ok=True)
 if path.exists():
@@ -45,30 +26,40 @@ if path.exists():
 else:
     lines = []
 
-replaced = False
-for index, line in enumerate(lines):
-    if line.strip().startswith(key):
-        indent = line[: len(line) - len(line.lstrip())]
-        lines[index] = f"{indent}{replacement_value}"
-        replaced = True
-        break
+# Drop any prior demo block (header + keys) so re-runs stay idempotent.
+filtered = []
+skip_demo = False
+for line in lines:
+    if line.startswith("# Local-only demo values"):
+        skip_demo = True
+        continue
+    if skip_demo:
+        if line.startswith(("demo:", "  awsAccessKeyId:", "  awsSecretAccessKey:", "  leakedGitHubPat:")):
+            continue
+        if line.strip() == "":
+            skip_demo = False
+            continue
+        skip_demo = False
+    filtered.append(line)
 
-if not replaced:
-    if lines and lines[-1] != "":
-        lines.append("")
-    lines.extend([
-        "# Local-only demo values; never used by the cloud profile.",
-        "demo:",
-        f"  {replacement_value}",
-    ])
+if filtered and filtered[-1] != "":
+    filtered.append("")
 
-path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+filtered.extend([
+    "# Local-only demo values; never used by the cloud profile.",
+    "demo:",
+    f'  awsAccessKeyId: "{access_key_id}"{label}',
+    f'  awsSecretAccessKey: "{secret_access_key}"{label}',
+])
+
+path.write_text("\n".join(filtered) + "\n", encoding="utf-8")
 PY
 
 cat <<EOF
-WARNING: generated a fake GitHub PAT-pattern token for the GHAS push-protection demo.
-Token written to: ${target_file}
-Token value: ${token}
+WARNING: wrote canonical AWS EXAMPLE credentials for the GHAS push-protection demo.
+Credentials written to: ${target_file}
+  AccessKeyId:     ${access_key_id}
+  SecretAccessKey: ${secret_access_key}
 
 This script does not run git add, git commit, or git push.
 Run it only on a disposable feature branch created from vulnerable.
