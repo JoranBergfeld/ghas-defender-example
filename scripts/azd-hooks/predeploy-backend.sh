@@ -37,7 +37,10 @@ PY
 require_env AZURE_RESOURCE_GROUP
 require_env AZURE_AKS_CLUSTER_NAME
 require_env AZURE_BACKEND_IDENTITY_CLIENT_ID
-require_env AZURE_STATIC_WEB_APP_NAME
+require_env AZURE_POSTGRES_HOST
+require_env AZURE_KEY_VAULT_URI
+require_env AZURE_STATIC_WEB_APP_HOSTNAME
+require_env SERVICE_BACKEND_IMAGE_NAME
 
 LOCAL_BIN="${HOME}/.local/bin"
 mkdir -p "${LOCAL_BIN}"
@@ -47,7 +50,6 @@ case ":${PATH}:" in
 esac
 
 if ! command -v kubelogin >/dev/null 2>&1 || ! command -v kubectl >/dev/null 2>&1; then
-  echo "Installing kubectl and kubelogin into ${LOCAL_BIN}..."
   az aks install-cli \
     --install-location "${LOCAL_BIN}/kubectl" \
     --kubelogin-install-location "${LOCAL_BIN}/kubelogin" >/dev/null
@@ -65,39 +67,15 @@ render_template src/backend/k8s/serviceaccount.tmpl.yaml | kubectl apply -f -
 kubectl apply -f src/backend/k8s/service.yaml
 kubectl apply -f src/backend/k8s/ingress.yaml
 
-SWA_HOSTNAME="$(az staticwebapp show \
-  --resource-group "$AZURE_RESOURCE_GROUP" \
-  --name "$AZURE_STATIC_WEB_APP_NAME" \
-  --query defaultHostname \
-  --output tsv)"
+if kubectl get job flyway-init -n app >/dev/null 2>&1; then
+  kubectl delete job flyway-init -n app --wait=true
+fi
 
-if [ -z "$SWA_HOSTNAME" ]; then
-  echo "Static Web Apps default hostname was empty" >&2
+render_template src/backend/k8s/flyway-job.tmpl.yaml | kubectl apply -f -
+
+if ! kubectl wait --for=condition=complete job/flyway-init -n app --timeout=300s; then
+  kubectl logs job/flyway-init -n app --all-containers=true || true
   exit 1
 fi
 
-azd env set AZURE_STATIC_WEB_APP_HOSTNAME "$SWA_HOSTNAME"
-
-INGRESS_IP=""
-ATTEMPTS=60
-while [ "$ATTEMPTS" -gt 0 ]; do
-  INGRESS_IP="$(kubectl get ingress backend -n app -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || true)"
-  if [ -n "$INGRESS_IP" ]; then
-    break
-  fi
-  ATTEMPTS=$((ATTEMPTS - 1))
-  sleep 5
-done
-
-if [ -z "$INGRESS_IP" ]; then
-  echo "Ingress IP was not assigned within 5 minutes" >&2
-  kubectl get ingress backend -n app -o wide || true
-  exit 1
-fi
-
-azd env set AZURE_BACKEND_INGRESS_IP "$INGRESS_IP"
-azd env set AZURE_BACKEND_INGRESS_HOSTNAME "${INGRESS_IP}.nip.io"
-azd env set VITE_API_BASE_URL "http://${INGRESS_IP}.nip.io/api"
-
-echo "Configured VITE_API_BASE_URL=http://${INGRESS_IP}.nip.io/api"
-echo "Configured AZURE_STATIC_WEB_APP_HOSTNAME=$SWA_HOSTNAME"
+kubectl logs job/flyway-init -n app --all-containers=true || true

@@ -14,6 +14,24 @@ services:
       path: ./Dockerfile
       context: .
       remoteBuild: true
+    k8s:
+      deploymentPath: k8s
+      namespace: app
+      deployment:
+        name: backend
+      service:
+        name: backend
+      ingress:
+        name: backend
+        relativePath: /api
+    hooks:
+      predeploy:
+        posix:
+          shell: sh
+          run: ./scripts/azd-hooks/predeploy-backend.sh
+        windows:
+          shell: pwsh
+          run: ./scripts/azd-hooks/predeploy-backend.ps1
   frontend:
     project: ./src/frontend
     language: ts
