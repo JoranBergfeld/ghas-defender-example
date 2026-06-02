@@ -17,6 +17,7 @@ on:
     paths:
       - 'src/frontend/**'
       - '.github/workflows/frontend-ci.yml'
+  workflow_dispatch:
 
 env:
   AZURE_ENV_NAME: ghasdemo
