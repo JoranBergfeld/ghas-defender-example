@@ -47,3 +47,5 @@ hooks:
     windows:
       shell: pwsh
       run: ./scripts/azd-hooks/postprovision.ps1
+
+# Plan 6 CI path-filter verification.
