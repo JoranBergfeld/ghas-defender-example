@@ -62,9 +62,8 @@ fi
 az aks get-credentials \
   --resource-group "$AZURE_RESOURCE_GROUP" \
   --name "$AZURE_AKS_CLUSTER_NAME" \
-  --overwrite-existing
-
-kubelogin convert-kubeconfig -l azurecli
+  --overwrite-existing \
+  --admin
 
 kubectl apply -f src/backend/k8s/namespace.yaml
 render_template src/backend/k8s/serviceaccount.tmpl.yaml | kubectl apply -f -
@@ -74,7 +73,7 @@ if kubectl get job flyway-init -n app >/dev/null 2>&1; then
   kubectl delete job flyway-init -n app --wait=true
 fi
 
-render_template src/backend/k8s/flyway-job.tmpl.yaml | kubectl apply -f -
+render_template src/backend/k8s-jobs/flyway-job.tmpl.yaml | kubectl apply -f -
 
 if ! kubectl wait --for=condition=complete job/flyway-init -n app --timeout=300s; then
   kubectl logs job/flyway-init -n app --all-containers=true || true
