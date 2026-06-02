@@ -6,8 +6,25 @@ target_file="src/backend/src/main/resources/application-local.yml"
 token_body="$(python3 - <<'PY'
 import secrets
 import string
+import zlib
+
 alphabet = string.ascii_letters + string.digits
-print(''.join(secrets.choice(alphabet) for _ in range(40)))
+
+
+def base62(value: int) -> str:
+    if value == 0:
+        return alphabet[0]
+    chars = []
+    while value:
+        value, remainder = divmod(value, 62)
+        chars.append(alphabet[remainder])
+    return "".join(reversed(chars))
+
+
+# GitHub classic PAT format: "ghp_" + 30 random base62 chars + 6-char CRC32 checksum (base62, padded).
+prefix = "".join(secrets.choice(alphabet) for _ in range(30))
+checksum = base62(zlib.crc32(prefix.encode("ascii"))).rjust(6, "0")
+print(prefix + checksum)
 PY
 )"
 token="ghp_${token_body}"
