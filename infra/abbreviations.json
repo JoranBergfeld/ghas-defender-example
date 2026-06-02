@@ -1,0 +1,16 @@
+{
+  "Microsoft.Authorization/roleAssignments": "ra",
+  "Microsoft.ContainerRegistry/registries": "cr",
+  "Microsoft.ContainerService/managedClusters": "aks",
+  "Microsoft.DBforPostgreSQL/flexibleServers": "pg",
+  "Microsoft.KeyVault/vaults": "kv",
+  "Microsoft.ManagedIdentity/userAssignedIdentities": "id",
+  "Microsoft.Network/networkSecurityGroups": "nsg",
+  "Microsoft.Network/privateDnsZones": "pdnsz",
+  "Microsoft.Network/privateEndpoints": "pe",
+  "Microsoft.Network/virtualNetworks": "vnet",
+  "Microsoft.OperationalInsights/workspaces": "log",
+  "Microsoft.Resources/resourceGroups": "rg",
+  "Microsoft.Security/securityConnectors": "sc",
+  "Microsoft.Web/staticSites": "swa"
+}
