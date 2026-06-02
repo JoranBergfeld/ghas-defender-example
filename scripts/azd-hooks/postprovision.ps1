@@ -79,8 +79,40 @@ if ([string]::IsNullOrWhiteSpace($ingressIp)) {
 }
 
 azd env set AZURE_BACKEND_INGRESS_IP $ingressIp
-azd env set AZURE_BACKEND_INGRESS_HOSTNAME "$ingressIp.nip.io"
-azd env set VITE_API_BASE_URL "http://$ingressIp.nip.io/api"
 
-Write-Host "Configured VITE_API_BASE_URL=http://$ingressIp.nip.io/api"
+$location = az group show --name $env:AZURE_RESOURCE_GROUP --query location --output tsv
+$md5 = [System.Security.Cryptography.MD5]::Create()
+$hashBytes = $md5.ComputeHash([System.Text.Encoding]::UTF8.GetBytes($env:AZURE_RESOURCE_GROUP))
+$dnsLabel = "ghas-defender-" + (([System.BitConverter]::ToString($hashBytes) -replace '-','').ToLower().Substring(0,10))
+
+kubectl annotate service nginx -n app-routing-system `
+    "service.beta.kubernetes.io/azure-dns-label-name=$dnsLabel" `
+    --overwrite | Out-Null
+
+$ingressFqdn = ""
+for ($attempt = 0; $attempt -lt 24; $attempt++) {
+    $ingressFqdn = az network public-ip list `
+        --query "[?ipAddress=='$ingressIp'].dnsSettings.fqdn | [0]" `
+        --output tsv 2>$null
+    if (-not [string]::IsNullOrWhiteSpace($ingressFqdn) -and $ingressFqdn -ne 'None') {
+        break
+    }
+    Start-Sleep -Seconds 5
+}
+
+if ([string]::IsNullOrWhiteSpace($ingressFqdn) -or $ingressFqdn -eq 'None') {
+    $ingressFqdn = "$dnsLabel.$location.cloudapp.azure.com"
+}
+
+azd env set AZURE_BACKEND_INGRESS_HOSTNAME $ingressFqdn
+azd env set VITE_API_BASE_URL "http://$ingressFqdn/api"
+
+$backendExists = kubectl get deployment backend -n app 2>$null
+if ($LASTEXITCODE -eq 0) {
+    Write-Host "Restarting backend deployment so it picks up rotated KeyVault secrets..."
+    kubectl rollout restart deployment/backend -n app | Out-Null
+    kubectl rollout status deployment/backend -n app --timeout=180s
+}
+
+Write-Host "Configured VITE_API_BASE_URL=http://$ingressFqdn/api"
 Write-Host "Configured AZURE_STATIC_WEB_APP_HOSTNAME=$swaHostname"

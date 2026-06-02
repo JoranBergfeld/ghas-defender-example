@@ -95,9 +95,39 @@ if [ -z "$INGRESS_IP" ]; then
   exit 1
 fi
 
-azd env set AZURE_BACKEND_INGRESS_IP "$INGRESS_IP"
-azd env set AZURE_BACKEND_INGRESS_HOSTNAME "${INGRESS_IP}.nip.io"
-azd env set VITE_API_BASE_URL "http://${INGRESS_IP}.nip.io/api"
+LOCATION="$(az group show --name "$AZURE_RESOURCE_GROUP" --query location --output tsv)"
+DNS_LABEL="ghas-defender-$(printf '%s' "$AZURE_RESOURCE_GROUP" | md5sum | cut -c1-10)"
 
-echo "Configured VITE_API_BASE_URL=http://${INGRESS_IP}.nip.io/api"
+kubectl annotate service nginx -n app-routing-system \
+  "service.beta.kubernetes.io/azure-dns-label-name=${DNS_LABEL}" \
+  --overwrite >/dev/null
+
+INGRESS_FQDN=""
+ATTEMPTS=24
+while [ "$ATTEMPTS" -gt 0 ]; do
+  INGRESS_FQDN="$(az network public-ip list \
+    --query "[?ipAddress=='${INGRESS_IP}'].dnsSettings.fqdn | [0]" \
+    --output tsv 2>/dev/null || true)"
+  if [ -n "$INGRESS_FQDN" ] && [ "$INGRESS_FQDN" != "None" ]; then
+    break
+  fi
+  ATTEMPTS=$((ATTEMPTS - 1))
+  sleep 5
+done
+
+if [ -z "$INGRESS_FQDN" ] || [ "$INGRESS_FQDN" = "None" ]; then
+  INGRESS_FQDN="${DNS_LABEL}.${LOCATION}.cloudapp.azure.com"
+fi
+
+azd env set AZURE_BACKEND_INGRESS_IP "$INGRESS_IP"
+azd env set AZURE_BACKEND_INGRESS_HOSTNAME "$INGRESS_FQDN"
+azd env set VITE_API_BASE_URL "http://${INGRESS_FQDN}/api"
+
+if kubectl get deployment backend -n app >/dev/null 2>&1; then
+  echo "Restarting backend deployment so it picks up rotated KeyVault secrets..."
+  kubectl rollout restart deployment/backend -n app >/dev/null
+  kubectl rollout status deployment/backend -n app --timeout=180s || true
+fi
+
+echo "Configured VITE_API_BASE_URL=http://${INGRESS_FQDN}/api"
 echo "Configured AZURE_STATIC_WEB_APP_HOSTNAME=$SWA_HOSTNAME"
