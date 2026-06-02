@@ -5,6 +5,7 @@ param location string
 param aksSubnetId string
 param logAnalyticsWorkspaceResourceId string
 param ghaDeployerPrincipalId string
+param operatorPrincipalId string
 param backendIdentityName string
 param kubernetesVersion string = '1.34'
 
@@ -98,6 +99,15 @@ resource ghaClusterRbacAdmin 'Microsoft.Authorization/roleAssignments@2022-04-01
   properties: {
     principalId: ghaDeployerPrincipalId
     principalType: 'ServicePrincipal'
+    roleDefinitionId: clusterRbacAdminRoleDefinitionId
+  }
+}
+
+resource operatorClusterRbacAdmin 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  scope: cluster
+  name: guid(cluster.id, 'operator', clusterRbacAdminRoleDefinitionId)
+  properties: {
+    principalId: operatorPrincipalId
     roleDefinitionId: clusterRbacAdminRoleDefinitionId
   }
 }

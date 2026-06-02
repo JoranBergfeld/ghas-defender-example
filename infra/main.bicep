@@ -93,6 +93,7 @@ module aks 'modules/aks.bicep' = {
     ghaDeployerPrincipalId: identity.outputs.ghaDeployerPrincipalId
     location: location
     logAnalyticsWorkspaceResourceId: logAnalytics.outputs.workspaceId
+    operatorPrincipalId: principalId
   }
 }
 
