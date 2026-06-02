@@ -125,7 +125,7 @@ jobs:
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
           subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
 
-      - uses: Azure/setup-azd@v1
+      - uses: Azure/setup-azd@v2
 
       - name: Prepare azd environment
         shell: bash
