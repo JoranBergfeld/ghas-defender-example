@@ -6,7 +6,7 @@ param aksSubnetId string
 param logAnalyticsWorkspaceResourceId string
 param ghaDeployerPrincipalId string
 param backendIdentityName string
-param kubernetesVersion string = '1.30'
+param kubernetesVersion string = '1.34'
 
 var clusterName = 'aks-${environmentName}'
 var clusterUserRoleDefinitionId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4abbcc35-e782-43d8-92c5-2d3f1bd2253f')

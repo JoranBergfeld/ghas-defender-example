@@ -5,7 +5,7 @@ param ghaDeployerPrincipalId string
 param staticWebAppLocation string = 'westeurope'
 
 var staticWebAppName = 'swa-${environmentName}'
-var staticWebAppsContributorRoleDefinitionId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '554bd744-a2ac-4c1b-8f29-cd6d120cee34')
+var staticWebAppsContributorRoleDefinitionId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'de139f84-1756-47ae-9be6-808fbbe84772')
 
 resource staticWebApp 'Microsoft.Web/staticSites@2023-12-01' = {
   name: staticWebAppName
