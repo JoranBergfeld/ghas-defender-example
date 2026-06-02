@@ -136,14 +136,6 @@ jobs:
 
       - uses: Azure/setup-azd@v2
 
-      - name: Authenticate azd with federated credentials
-        shell: bash
-        run: |
-          azd auth login \
-            --client-id "${{ vars.AZURE_CLIENT_ID }}" \
-            --federated-credential-provider github \
-            --tenant-id "${{ vars.AZURE_TENANT_ID }}"
-
       - name: Prepare azd environment
         shell: bash
         run: |
