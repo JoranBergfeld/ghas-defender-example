@@ -9,6 +9,13 @@ param location string = 'westeurope'
 @description('Object ID of the signed-in user or service principal running azd provision.')
 param principalId string
 
+@description('Principal type for the developer/operator role assignments — User when run by a human, ServicePrincipal when run by a CI service principal.')
+@allowed([
+  'User'
+  'ServicePrincipal'
+])
+param principalType string = 'User'
+
 @description('GitHub organization or user that owns the repository.')
 param githubOrg string = 'JoranBergfeld'
 
@@ -86,6 +93,7 @@ module keyVault 'modules/keyvault.bicep' = {
   params: {
     backendPrincipalId: identity.outputs.backendPrincipalId
     developerPrincipalId: principalId
+    developerPrincipalType: principalType
     environmentName: environmentName
     keyVaultPrivateDnsZoneId: network.outputs.keyVaultPrivateDnsZoneId
     location: location
@@ -104,6 +112,7 @@ module aks 'modules/aks.bicep' = {
     location: location
     logAnalyticsWorkspaceResourceId: logAnalytics.outputs.workspaceId
     operatorPrincipalId: principalId
+    operatorPrincipalType: principalType
   }
 }
 
@@ -113,6 +122,7 @@ module acr 'modules/acr.bicep' = {
   params: {
     backendPrincipalId: identity.outputs.backendPrincipalId
     developerPrincipalId: principalId
+    developerPrincipalType: principalType
     environmentName: environmentName
     ghaDeployerPrincipalId: identity.outputs.ghaDeployerPrincipalId
     kubeletIdentityObjectId: aks.outputs.kubeletIdentityObjectId

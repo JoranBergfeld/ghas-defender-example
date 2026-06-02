@@ -8,6 +8,11 @@ param ghaDeployerPrincipalId string
 param backendPrincipalId string
 param kubeletIdentityObjectId string
 param developerPrincipalId string
+@allowed([
+  'User'
+  'ServicePrincipal'
+])
+param developerPrincipalType string = 'User'
 
 var registryName = 'cr${uniqueString(resourceGroup().id)}'
 var acrPushRoleDefinitionId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '8311e382-0749-4cb8-b61a-304f252e45ec')
@@ -41,7 +46,7 @@ resource developerAcrPush 'Microsoft.Authorization/roleAssignments@2022-04-01' =
   name: guid(registry.id, 'developer', acrPushRoleDefinitionId)
   properties: {
     principalId: developerPrincipalId
-    principalType: 'User'
+    principalType: developerPrincipalType
     roleDefinitionId: acrPushRoleDefinitionId
   }
 }
