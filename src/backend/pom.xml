@@ -31,7 +31,13 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
-        </dependencies>
+        <dependency>
+      <!-- SEEDED VULN #5 — see scripts/seed-vulnerabilities.md -->
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-core</artifactId>
+      <version>5.3.18</version>
+    </dependency>
+    </dependencies>
     </dependencyManagement>
 
     <dependencies>
