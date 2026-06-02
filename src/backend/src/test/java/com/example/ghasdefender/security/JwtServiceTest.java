@@ -34,7 +34,7 @@ class JwtServiceTest {
     void configuredBase64KeyCanSignAndVerifyTokens() {
         SecretKey generatedKey = Jwts.SIG.HS256.key().build();
         String encodedKey = Encoders.BASE64.encode(generatedKey.getEncoded());
-        SecretKey configuredKey = new JwtConfig().jwtSigningKey(encodedKey);
+        SecretKey configuredKey = new JwtConfig().localJwtSigningKey(encodedKey);
         JwtService jwtService = new JwtService(configuredKey);
 
         String token = jwtService.generateToken("demo");
@@ -44,19 +44,17 @@ class JwtServiceTest {
     }
 
     @Test
-    void missingConfiguredKeyGeneratesLocalDevelopmentKey() {
-        SecretKey generatedKey = new JwtConfig().jwtSigningKey("");
-        JwtService jwtService = new JwtService(generatedKey);
-
-        String token = jwtService.generateToken("demo");
-
-        assertThat(jwtService.isTokenValid(token)).isTrue();
+    void emptyConfiguredKeyFailsFast() {
+        assertThatThrownBy(() -> new JwtConfig().localJwtSigningKey(""))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("JWT signing key must decode to at least 32 bytes");
     }
 
     @Test
     void shortConfiguredKeyFailsFast() {
-        assertThatThrownBy(() -> new JwtConfig().jwtSigningKey("short"))
+        // c2hvcnQ= is base64 for "short" (5 bytes), well under the 32-byte minimum.
+        assertThatThrownBy(() -> new JwtConfig().localJwtSigningKey("c2hvcnQ="))
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("JWT_SIGNING_KEY must be at least 256 bits");
+                .hasMessageContaining("JWT signing key must decode to at least 32 bytes");
     }
 }
