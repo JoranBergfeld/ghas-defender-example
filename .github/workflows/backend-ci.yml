@@ -216,6 +216,22 @@ jobs:
           AKS_NAME=$(az resource list -g "$RG" --resource-type Microsoft.ContainerService/managedClusters --query "[0].name" -o tsv)
           azd env set AZURE_AKS_CLUSTER_NAME "$AKS_NAME"
           azd env set AZURE_AKS_NAMESPACE app
+          KV_NAME=$(az resource list -g "$RG" --resource-type Microsoft.KeyVault/vaults --query "[0].name" -o tsv)
+          KV_URI=$(az keyvault show -n "$KV_NAME" -g "$RG" --query properties.vaultUri -o tsv)
+          azd env set AZURE_KEY_VAULT_NAME "$KV_NAME"
+          azd env set AZURE_KEY_VAULT_URI "$KV_URI"
+          PG_NAME=$(az resource list -g "$RG" --resource-type Microsoft.DBforPostgreSQL/flexibleServers --query "[0].name" -o tsv)
+          PG_HOST=$(az postgres flexible-server show -n "$PG_NAME" -g "$RG" --query fullyQualifiedDomainName -o tsv)
+          azd env set AZURE_POSTGRES_HOST "$PG_HOST"
+          azd env set AZURE_POSTGRES_DATABASE appdb
+          BE_MI_CLIENT_ID=$(az identity show -n id-backend -g "$RG" --query clientId -o tsv)
+          azd env set AZURE_BACKEND_IDENTITY_CLIENT_ID "$BE_MI_CLIENT_ID"
+          GHA_MI_CLIENT_ID=$(az identity show -n id-gha-deployer -g "$RG" --query clientId -o tsv)
+          azd env set AZURE_GHA_DEPLOYER_CLIENT_ID "$GHA_MI_CLIENT_ID"
+          SWA_NAME=$(az resource list -g "$RG" --resource-type Microsoft.Web/staticSites --query "[0].name" -o tsv)
+          SWA_HOST=$(az staticwebapp show -n "$SWA_NAME" -g "$RG" --query defaultHostname -o tsv)
+          azd env set AZURE_STATIC_WEB_APP_NAME "$SWA_NAME"
+          azd env set AZURE_STATIC_WEB_APP_HOSTNAME "$SWA_HOST"
 
       - name: Deploy backend
         continue-on-error: false
