@@ -13,6 +13,7 @@ param operatorPrincipalId string
 param operatorPrincipalType string = 'User'
 param backendIdentityName string
 param createGhaDeployerRoles bool = true
+param createOperatorRole bool = true
 param kubernetesVersion string = '1.34'
 
 var clusterName = 'aks-${environmentName}'
@@ -109,7 +110,7 @@ resource ghaClusterRbacAdmin 'Microsoft.Authorization/roleAssignments@2022-04-01
   }
 }
 
-resource operatorClusterRbacAdmin 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+resource operatorClusterRbacAdmin 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (createOperatorRole) {
   scope: cluster
   name: guid(cluster.id, 'operator', operatorPrincipalId, clusterRbacAdminRoleDefinitionId)
   properties: {
