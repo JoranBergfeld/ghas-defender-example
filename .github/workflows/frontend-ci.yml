@@ -172,7 +172,18 @@ jobs:
           PY
 
       - name: Refresh azd environment outputs
-        run: azd env refresh --no-prompt
+        run: azd env refresh --no-prompt || true
+
+      - name: Hydrate azd env vars from Azure resources
+        shell: bash
+        run: |
+          RG=$(az group list --tag azd-env-name=${AZURE_ENV_NAME} --query "[0].name" -o tsv)
+          if [ -z "$RG" ]; then echo "ERROR: no RG found with azd-env-name=${AZURE_ENV_NAME}"; exit 1; fi
+          azd env set AZURE_RESOURCE_GROUP "$RG"
+          SWA_NAME=$(az resource list -g "$RG" --resource-type Microsoft.Web/staticSites --query "[0].name" -o tsv)
+          SWA_HOST=$(az staticwebapp show -n "$SWA_NAME" -g "$RG" --query defaultHostname -o tsv)
+          azd env set AZURE_STATIC_WEB_APP_NAME "$SWA_NAME"
+          azd env set AZURE_STATIC_WEB_APP_HOSTNAME "$SWA_HOST"
 
       - name: Deploy frontend
         run: azd deploy frontend --no-prompt

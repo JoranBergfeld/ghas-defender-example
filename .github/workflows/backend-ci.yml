@@ -201,7 +201,21 @@ jobs:
           PY
 
       - name: Refresh azd environment outputs
-        run: azd env refresh --no-prompt
+        run: azd env refresh --no-prompt || true
+
+      - name: Hydrate azd env vars from Azure resources
+        shell: bash
+        run: |
+          RG=$(az group list --tag azd-env-name=${AZURE_ENV_NAME} --query "[0].name" -o tsv)
+          if [ -z "$RG" ]; then echo "ERROR: no RG found with azd-env-name=${AZURE_ENV_NAME}"; exit 1; fi
+          azd env set AZURE_RESOURCE_GROUP "$RG"
+          ACR_NAME=$(az resource list -g "$RG" --resource-type Microsoft.ContainerRegistry/registries --query "[0].name" -o tsv)
+          ACR_ENDPOINT=$(az acr show -n "$ACR_NAME" --query loginServer -o tsv)
+          azd env set AZURE_CONTAINER_REGISTRY_NAME "$ACR_NAME"
+          azd env set AZURE_CONTAINER_REGISTRY_ENDPOINT "$ACR_ENDPOINT"
+          AKS_NAME=$(az resource list -g "$RG" --resource-type Microsoft.ContainerService/managedClusters --query "[0].name" -o tsv)
+          azd env set AZURE_AKS_CLUSTER_NAME "$AKS_NAME"
+          azd env set AZURE_AKS_NAMESPACE app
 
       - name: Deploy backend
         continue-on-error: false
