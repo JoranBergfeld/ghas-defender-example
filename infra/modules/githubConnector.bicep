@@ -2,10 +2,9 @@ targetScope = 'resourceGroup'
 
 param environmentName string
 param location string
-param githubOrg string
-param githubRepo string
+param hierarchyIdentifier string
 
-var connectorName = 'ghas-github-${environmentName}-${uniqueString(subscription().subscriptionId, githubOrg, githubRepo)}'
+var connectorName = 'ghas-github-${environmentName}-${uniqueString(subscription().subscriptionId, hierarchyIdentifier)}'
 
 resource githubConnector 'Microsoft.Security/securityConnectors@2024-08-01-preview' = {
   name: connectorName
@@ -16,7 +15,7 @@ resource githubConnector 'Microsoft.Security/securityConnectors@2024-08-01-previ
       environmentType: 'GithubScope'
     }
     environmentName: 'GitHub'
-    hierarchyIdentifier: '${githubOrg}/${githubRepo}'
+    hierarchyIdentifier: hierarchyIdentifier
     offerings: [
       {
         offeringType: 'CspmMonitorGithub'

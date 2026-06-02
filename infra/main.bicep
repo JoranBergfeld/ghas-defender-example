@@ -15,6 +15,9 @@ param githubOrg string = 'JoranBergfeld'
 @description('GitHub repository name.')
 param githubRepo string = 'ghas-defender-example'
 
+@description('Defender-assigned hierarchy identifier (GUID) for the GitHub organization. Obtained after completing the manual OAuth onboarding in the Azure portal. Leave empty to skip provisioning the GitHub security connector.')
+param githubConnectorHierarchyId string = ''
+
 var resourceGroupName = 'rg-ghas-defender-${environmentName}'
 var ghaDeployerName = 'id-gha-deployer'
 var readerRoleDefinitionId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'acdd72a7-3385-48ef-bd42-f606fba81ae7')
@@ -140,13 +143,12 @@ module policy 'modules/policy.bicep' = {
   ]
 }
 
-module githubConnector 'modules/githubConnector.bicep' = {
+module githubConnector 'modules/githubConnector.bicep' = if (!empty(githubConnectorHierarchyId)) {
   name: 'github-connector-${environmentName}'
   scope: resourceGroup
   params: {
     environmentName: environmentName
-    githubOrg: githubOrg
-    githubRepo: githubRepo
+    hierarchyIdentifier: githubConnectorHierarchyId
     location: location
   }
 }

@@ -4,8 +4,7 @@ module githubConnector '../modules/githubConnector.bicep' = {
   name: 'github-connector-test'
   params: {
     environmentName: 'test'
-    githubOrg: 'JoranBergfeld'
-    githubRepo: 'ghas-defender-example'
+    hierarchyIdentifier: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'
     location: 'westeurope'
   }
 }
