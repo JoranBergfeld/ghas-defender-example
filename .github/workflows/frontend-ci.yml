@@ -114,7 +114,7 @@ jobs:
           PY
 
   deploy:
-    if: github.event_name == 'push' && (github.ref_name == 'secure' || github.ref_name == 'vulnerable')
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && (github.ref_name == 'secure' || github.ref_name == 'vulnerable')
     needs:
       - build-test
       - codeql
