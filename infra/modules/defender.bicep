@@ -8,6 +8,7 @@ var planNames = [
   'Arm'
 ]
 
+@batchSize(1)
 resource defenderPlans 'Microsoft.Security/pricings@2024-01-01' = [for planName in planNames: {
   name: planName
   properties: {
