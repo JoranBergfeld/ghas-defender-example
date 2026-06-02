@@ -56,6 +56,7 @@ resource ghaContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   }
 }
 
+@batchSize(1)
 resource ghaFederatedIdentityCredentials 'Microsoft.ManagedIdentity/userAssignedIdentities/federatedIdentityCredentials@2023-01-31' = [for credential in githubFederatedCredentials: {
   parent: ghaDeployer
   name: credential.name
