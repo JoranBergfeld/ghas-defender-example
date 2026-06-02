@@ -1,0 +1,174 @@
+name: backend-ci
+
+on:
+  pull_request:
+    branches:
+      - main
+      - secure
+      - vulnerable
+    paths:
+      - 'src/backend/**'
+      - '.github/workflows/backend-ci.yml'
+  push:
+    branches:
+      - main
+      - secure
+      - vulnerable
+    paths:
+      - 'src/backend/**'
+      - '.github/workflows/backend-ci.yml'
+
+env:
+  AZURE_ENV_NAME: demo
+  AZURE_LOCATION: westeurope
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Run Maven verify
+        run: ./mvnw -f src/backend/pom.xml -B verify
+
+      - name: Upload Surefire reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-surefire-reports
+          path: |
+            src/backend/target/surefire-reports/**
+            src/backend/target/failsafe-reports/**
+          if-no-files-found: ignore
+
+  codeql:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      packages: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: java-kotlin
+          config-file: ./.github/codeql-config.yml
+
+      - uses: github/codeql-action/autobuild@v3
+
+      - uses: github/codeql-action/analyze@v3
+        with:
+          category: /language:java-kotlin
+          output: codeql-results
+
+      - name: Fail on high or critical CodeQL findings
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          
+          threshold = 7.0
+          sarif_files = list(Path('codeql-results').rglob('*.sarif'))
+          if not sarif_files:
+              raise SystemExit('No CodeQL SARIF files found in codeql-results')
+          
+          findings = []
+          for sarif_file in sarif_files:
+              data = json.loads(sarif_file.read_text())
+              for run in data.get('runs', []):
+                  rules = {
+                      rule.get('id'): rule
+                      for rule in run.get('tool', {}).get('driver', {}).get('rules', [])
+                  }
+                  for result in run.get('results', []):
+                      rule_id = result.get('ruleId')
+                      rule = rules.get(rule_id, {})
+                      properties = rule.get('properties', {})
+                      raw_score = properties.get('security-severity')
+                      if raw_score is None:
+                          continue
+                      try:
+                          score = float(raw_score)
+                      except ValueError:
+                          continue
+                      if score >= threshold:
+                          message = result.get('message', {}).get('text', 'No message')
+                          findings.append(f'{rule_id}: security-severity {score} - {message}')
+          
+          if findings:
+              print('High or critical CodeQL findings:')
+              for finding in findings:
+                  print(f'- {finding}')
+              raise SystemExit(1)
+          
+          print('No high or critical CodeQL findings found.')
+          PY
+
+  dependency-review:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/dependency-review-action@v4
+
+  deploy:
+    if: github.event_name == 'push' && (github.ref_name == 'secure' || github.ref_name == 'vulnerable')
+    needs:
+      - build-test
+      - codeql
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    concurrency:
+      group: backend-deploy-${{ github.ref_name }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - uses: Azure/setup-azd@v1
+
+      - name: Prepare azd environment
+        shell: bash
+        run: |
+          azd env new "${AZURE_ENV_NAME}" --no-prompt || azd env select "${AZURE_ENV_NAME}"
+          azd env set AZURE_LOCATION "${AZURE_LOCATION}"
+          azd env set AZURE_SUBSCRIPTION_ID "${{ vars.AZURE_SUBSCRIPTION_ID }}"
+          azd env set AZURE_TENANT_ID "${{ vars.AZURE_TENANT_ID }}"
+          principal_id="$(az ad sp show --id "${{ vars.AZURE_CLIENT_ID }}" --query id -o tsv)"
+          azd env set AZURE_PRINCIPAL_ID "${principal_id}"
+
+      - name: Refresh azd environment outputs
+        run: azd env refresh --no-prompt
+
+      - name: Deploy backend
+        continue-on-error: false
+        run: azd deploy backend --no-prompt
