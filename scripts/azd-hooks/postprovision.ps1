@@ -8,9 +8,19 @@ if ([string]::IsNullOrWhiteSpace($env:AZURE_AKS_CLUSTER_NAME)) {
     throw 'AZURE_AKS_CLUSTER_NAME is required'
 }
 
-if (-not (Get-Command kubelogin -ErrorAction SilentlyContinue)) {
-    Write-Host "kubelogin not found, installing kubectl and kubelogin via 'az aks install-cli'..."
-    az aks install-cli | Out-Null
+$localBin = Join-Path $HOME '.local/bin'
+New-Item -ItemType Directory -Force -Path $localBin | Out-Null
+if (-not (($env:PATH -split [System.IO.Path]::PathSeparator) -contains $localBin)) {
+    $env:PATH = "$localBin$([System.IO.Path]::PathSeparator)$env:PATH"
+}
+
+if (-not (Get-Command kubelogin -ErrorAction SilentlyContinue) -or -not (Get-Command kubectl -ErrorAction SilentlyContinue)) {
+    Write-Host "Installing kubectl and kubelogin into $localBin..."
+    $kubectlPath = Join-Path $localBin 'kubectl'
+    $kubeloginPath = Join-Path $localBin 'kubelogin'
+    az aks install-cli `
+        --install-location $kubectlPath `
+        --kubelogin-install-location $kubeloginPath | Out-Null
 }
 
 Write-Host "Fetching AKS credentials for $($env:AZURE_AKS_CLUSTER_NAME) in $($env:AZURE_RESOURCE_GROUP)..."
