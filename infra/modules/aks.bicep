@@ -43,7 +43,7 @@ resource cluster 'Microsoft.ContainerService/managedClusters@2024-05-01' = {
         osSKU: 'Ubuntu'
         osType: 'Linux'
         type: 'VirtualMachineScaleSets'
-        vmSize: 'Standard_D2as_v5'
+        vmSize: 'Standard_D2as_v6'
         vnetSubnetID: aksSubnetId
       }
     ]
