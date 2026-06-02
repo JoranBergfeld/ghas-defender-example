@@ -42,6 +42,9 @@ var userAccessAdministratorRoleDefinitionId = subscriptionResourceId('Microsoft.
 resource resourceGroup 'Microsoft.Resources/resourceGroups@2024-03-01' = {
   name: resourceGroupName
   location: location
+  tags: {
+    'azd-env-name': environmentName
+  }
 }
 
 module defender 'modules/defender.bicep' = {
