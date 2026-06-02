@@ -20,7 +20,7 @@ param githubConnectorHierarchyId string = ''
 
 var resourceGroupName = 'rg-ghas-defender-${environmentName}'
 var ghaDeployerName = 'id-gha-deployer'
-var readerRoleDefinitionId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'acdd72a7-3385-48ef-bd42-f606fba81ae7')
+var contributorRoleDefinitionId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')
 
 resource resourceGroup 'Microsoft.Resources/resourceGroups@2024-03-01' = {
   name: resourceGroupName
@@ -61,12 +61,12 @@ module identity 'modules/identity.bicep' = {
   }
 }
 
-resource ghaSubscriptionReader 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(subscription().id, resourceGroupName, ghaDeployerName, readerRoleDefinitionId)
+resource ghaSubscriptionContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(subscription().id, resourceGroupName, ghaDeployerName, contributorRoleDefinitionId)
   properties: {
     principalId: identity.outputs.ghaDeployerPrincipalId
     principalType: 'ServicePrincipal'
-    roleDefinitionId: readerRoleDefinitionId
+    roleDefinitionId: contributorRoleDefinitionId
   }
 }
 
