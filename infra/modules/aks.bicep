@@ -12,6 +12,7 @@ param operatorPrincipalId string
 ])
 param operatorPrincipalType string = 'User'
 param backendIdentityName string
+param createGhaDeployerRoles bool = true
 param kubernetesVersion string = '1.34'
 
 var clusterName = 'aks-${environmentName}'
@@ -88,7 +89,7 @@ resource cluster 'Microsoft.ContainerService/managedClusters@2024-05-01' = {
   }
 }
 
-resource ghaClusterUser 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+resource ghaClusterUser 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (createGhaDeployerRoles) {
   scope: cluster
   name: guid(cluster.id, 'id-gha-deployer', clusterUserRoleDefinitionId)
   properties: {
@@ -98,7 +99,7 @@ resource ghaClusterUser 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   }
 }
 
-resource ghaClusterRbacAdmin 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+resource ghaClusterRbacAdmin 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (createGhaDeployerRoles) {
   scope: cluster
   name: guid(cluster.id, 'id-gha-deployer', clusterRbacAdminRoleDefinitionId)
   properties: {
