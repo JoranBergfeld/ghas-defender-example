@@ -152,6 +152,7 @@ jobs:
           azd env set AZURE_TENANT_ID "${{ vars.AZURE_TENANT_ID }}"
           principal_id="$(az ad sp show --id "${{ vars.AZURE_CLIENT_ID }}" --query id -o tsv)"
           azd env set AZURE_PRINCIPAL_ID "${principal_id}"
+          azd env set AZURE_PRINCIPAL_TYPE ServicePrincipal
 
       - name: Refresh azd environment outputs
         run: azd env refresh --no-prompt

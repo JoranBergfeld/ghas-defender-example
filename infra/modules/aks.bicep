@@ -6,6 +6,11 @@ param aksSubnetId string
 param logAnalyticsWorkspaceResourceId string
 param ghaDeployerPrincipalId string
 param operatorPrincipalId string
+@allowed([
+  'User'
+  'ServicePrincipal'
+])
+param operatorPrincipalType string = 'User'
 param backendIdentityName string
 param kubernetesVersion string = '1.34'
 
@@ -111,6 +116,7 @@ resource operatorClusterRbacAdmin 'Microsoft.Authorization/roleAssignments@2022-
   name: guid(cluster.id, 'operator', clusterRbacAdminRoleDefinitionId)
   properties: {
     principalId: operatorPrincipalId
+    principalType: operatorPrincipalType
     roleDefinitionId: clusterRbacAdminRoleDefinitionId
   }
 }

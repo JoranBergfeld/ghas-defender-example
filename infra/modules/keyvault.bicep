@@ -5,6 +5,11 @@ param location string
 param privateEndpointSubnetId string
 param keyVaultPrivateDnsZoneId string
 param developerPrincipalId string
+@allowed([
+  'User'
+  'ServicePrincipal'
+])
+param developerPrincipalType string = 'User'
 param backendPrincipalId string
 
 var keyVaultName = 'kv-${uniqueString(resourceGroup().id)}'
@@ -37,7 +42,7 @@ resource developerKeyVaultAdministrator 'Microsoft.Authorization/roleAssignments
   name: guid(keyVault.id, 'developer', keyVaultAdministratorRoleDefinitionId)
   properties: {
     principalId: developerPrincipalId
-    principalType: 'User'
+    principalType: developerPrincipalType
     roleDefinitionId: keyVaultAdministratorRoleDefinitionId
   }
 }
