@@ -38,7 +38,7 @@ resource cluster 'Microsoft.ContainerService/managedClusters@2024-05-01' = {
     agentPoolProfiles: [
       {
         name: 'systempool'
-        count: 2
+        count: 4
         enableAutoScaling: false
         mode: 'System'
         osSKU: 'Ubuntu'

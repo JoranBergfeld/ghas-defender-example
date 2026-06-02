@@ -15,7 +15,34 @@ resource aksNsg 'Microsoft.Network/networkSecurityGroups@2024-05-01' = {
   name: 'nsg-${environmentName}-aks'
   location: location
   properties: {
-    securityRules: []
+    securityRules: [
+      {
+        name: 'AllowHttpInbound'
+        properties: {
+          access: 'Allow'
+          direction: 'Inbound'
+          priority: 100
+          protocol: 'Tcp'
+          sourceAddressPrefix: 'Internet'
+          sourcePortRange: '*'
+          destinationAddressPrefix: '*'
+          destinationPortRange: '80'
+        }
+      }
+      {
+        name: 'AllowHttpsInbound'
+        properties: {
+          access: 'Allow'
+          direction: 'Inbound'
+          priority: 110
+          protocol: 'Tcp'
+          sourceAddressPrefix: 'Internet'
+          sourcePortRange: '*'
+          destinationAddressPrefix: '*'
+          destinationPortRange: '443'
+        }
+      }
+    ]
   }
 }
 

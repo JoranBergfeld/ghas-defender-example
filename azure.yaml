@@ -28,10 +28,12 @@ services:
       predeploy:
         posix:
           shell: sh
-          run: ./scripts/azd-hooks/predeploy-backend.sh
+          run: ../../scripts/azd-hooks/predeploy-backend.sh
+          interactive: false
         windows:
           shell: pwsh
-          run: ./scripts/azd-hooks/predeploy-backend.ps1
+          run: ../../scripts/azd-hooks/predeploy-backend.ps1
+          interactive: false
   frontend:
     project: ./src/frontend
     language: ts

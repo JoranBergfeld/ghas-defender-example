@@ -15,6 +15,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.example.ghasdefender.config.CorsConfig;
+import com.example.ghasdefender.config.PasswordEncoderConfig;
 import com.example.ghasdefender.config.SecurityConfig;
 import com.example.ghasdefender.domain.Item;
 import com.example.ghasdefender.repo.ItemRepository;
@@ -32,7 +33,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(ItemController.class)
-@Import({SecurityConfig.class, CorsConfig.class, JwtAuthenticationFilter.class})
+@Import({SecurityConfig.class, PasswordEncoderConfig.class, CorsConfig.class, JwtAuthenticationFilter.class})
 class ItemControllerTest {
 
     @Autowired
