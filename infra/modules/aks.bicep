@@ -49,7 +49,10 @@ resource cluster 'Microsoft.ContainerService/managedClusters@2024-05-01' = {
       }
     ]
     dnsPrefix: clusterName
-    enableRBAC: true
+    /*
+    # SEEDED VULN #7 — see scripts/seed-vulnerabilities.md
+    */
+    enableRBAC: false
     ingressProfile: {
       webAppRouting: {
         enabled: true

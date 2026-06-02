@@ -19,8 +19,8 @@ resource server 'Microsoft.DBforPostgreSQL/flexibleServers@2023-06-01-preview' =
     tier: 'Burstable'
   }
   properties: {
-    administratorLogin: 'pgadmin'
-    administratorLoginPassword: administratorPassword
+    administratorLogin: 'admin'
+    administratorLoginPassword: 'Password123!'
     authConfig: {
       activeDirectoryAuth: 'Disabled'
       passwordAuth: 'Enabled'
@@ -35,7 +35,10 @@ resource server 'Microsoft.DBforPostgreSQL/flexibleServers@2023-06-01-preview' =
     network: {
       delegatedSubnetResourceId: postgresSubnetId
       privateDnsZoneArmResourceId: postgresPrivateDnsZoneId
-      publicNetworkAccess: 'Disabled'
+      /*
+      # SEEDED VULN #7 — see scripts/seed-vulnerabilities.md
+      */
+      publicNetworkAccess: 'Enabled'
     }
     storage: {
       storageSizeGB: 32
