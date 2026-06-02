@@ -19,8 +19,8 @@ on:
       - '.github/workflows/frontend-ci.yml'
 
 env:
-  AZURE_ENV_NAME: demo
-  AZURE_LOCATION: westeurope
+  AZURE_ENV_NAME: ghasdemo
+  AZURE_LOCATION: swedencentral
 
 jobs:
   build-test:
