@@ -1,0 +1,9 @@
+name: ghas-defender-codeql
+
+queries:
+  - uses: security-extended
+
+paths-ignore:
+  - '**/test/**'
+  - '**/*.test.ts'
+  - '**/*.spec.ts'
