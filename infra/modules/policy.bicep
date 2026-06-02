@@ -2,7 +2,7 @@ targetScope = 'resourceGroup'
 
 param environmentName string
 
-var policyDefinitionId = subscriptionResourceId('Microsoft.Authorization/policyDefinitions', '13cd7ae3-5bc0-4ac4-a62d-4f7c120b9759')
+var policyDefinitionId = tenantResourceId('Microsoft.Authorization/policyDefinitions', '13cd7ae3-5bc0-4ac4-a62d-4f7c120b9759')
 
 resource denyHighSeverityVulnerableImages 'Microsoft.Authorization/policyAssignments@2024-04-01' = {
   name: 'deny-high-sev-images'
