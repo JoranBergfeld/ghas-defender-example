@@ -21,6 +21,7 @@ param githubConnectorHierarchyId string = ''
 var resourceGroupName = 'rg-ghas-defender-${environmentName}'
 var ghaDeployerName = 'id-gha-deployer'
 var contributorRoleDefinitionId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')
+var userAccessAdministratorRoleDefinitionId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '18d7d88d-d35e-4fb5-a5c3-7773c20a72d9')
 
 resource resourceGroup 'Microsoft.Resources/resourceGroups@2024-03-01' = {
   name: resourceGroupName
@@ -67,6 +68,15 @@ resource ghaSubscriptionContributor 'Microsoft.Authorization/roleAssignments@202
     principalId: identity.outputs.ghaDeployerPrincipalId
     principalType: 'ServicePrincipal'
     roleDefinitionId: contributorRoleDefinitionId
+  }
+}
+
+resource ghaSubscriptionUserAccessAdmin 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(subscription().id, resourceGroupName, ghaDeployerName, userAccessAdministratorRoleDefinitionId)
+  properties: {
+    principalId: identity.outputs.ghaDeployerPrincipalId
+    principalType: 'ServicePrincipal'
+    roleDefinitionId: userAccessAdministratorRoleDefinitionId
   }
 }
 
