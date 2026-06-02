@@ -10,6 +10,9 @@ var staticWebAppsContributorRoleDefinitionId = subscriptionResourceId('Microsoft
 resource staticWebApp 'Microsoft.Web/staticSites@2023-12-01' = {
   name: staticWebAppName
   location: staticWebAppLocation
+  tags: {
+    'azd-service-name': 'frontend'
+  }
   sku: {
     name: 'Standard'
     tier: 'Standard'
