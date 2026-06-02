@@ -8,10 +8,16 @@ metadata:
     app.kubernetes.io/part-of: ghas-defender-example
   annotations:
     kubernetes.azure.com/ingress.class: webapprouting.kubernetes.azure.com
+    cert-manager.io/cluster-issuer: letsencrypt-prod
 spec:
   ingressClassName: webapprouting.kubernetes.azure.com
+  tls:
+    - hosts:
+        - {{ .Env.AZURE_BACKEND_INGRESS_HOSTNAME }}
+      secretName: backend-tls
   rules:
-    - http:
+    - host: {{ .Env.AZURE_BACKEND_INGRESS_HOSTNAME }}
+      http:
         paths:
           - path: /api
             pathType: Prefix

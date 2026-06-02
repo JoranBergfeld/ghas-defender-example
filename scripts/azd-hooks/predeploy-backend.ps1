@@ -56,7 +56,6 @@ kubelogin convert-kubeconfig -l azurecli
 kubectl apply -f src/backend/k8s/namespace.yaml
 Expand-AzdTemplate "src/backend/k8s/serviceaccount.tmpl.yaml" | kubectl apply -f -
 kubectl apply -f src/backend/k8s/service.yaml
-kubectl apply -f src/backend/k8s/ingress.yaml
 
 $existingJob = kubectl get job flyway-init -n app --ignore-not-found
 if (-not [string]::IsNullOrWhiteSpace($existingJob)) {

@@ -19,10 +19,6 @@ on:
       - '.github/workflows/frontend-ci.yml'
   workflow_dispatch:
 
-env:
-  AZURE_ENV_NAME: ghasdemo
-  AZURE_LOCATION: swedencentral
-
 jobs:
   build-test:
     runs-on: ubuntu-latest
@@ -112,78 +108,3 @@ jobs:
           
           print('No high or critical CodeQL findings found.')
           PY
-
-  deploy:
-    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && (github.ref_name == 'secure' || github.ref_name == 'vulnerable')
-    needs:
-      - build-test
-      - codeql
-    runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: read
-    concurrency:
-      group: frontend-deploy-${{ github.ref_name }}
-      cancel-in-progress: false
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: azure/login@v2
-        with:
-          client-id: ${{ vars.AZURE_CLIENT_ID }}
-          tenant-id: ${{ vars.AZURE_TENANT_ID }}
-          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
-
-      - uses: Azure/setup-azd@v2
-
-      - name: Authenticate azd with federated credentials
-        shell: bash
-        run: |
-          azd auth login \
-            --client-id "${{ vars.AZURE_CLIENT_ID }}" \
-            --federated-credential-provider github \
-            --tenant-id "${{ vars.AZURE_TENANT_ID }}"
-
-      - name: Prepare azd environment
-        shell: bash
-        run: |
-          azd env new "${AZURE_ENV_NAME}" --no-prompt || azd env select "${AZURE_ENV_NAME}"
-          azd env set AZURE_LOCATION "${AZURE_LOCATION}"
-          azd env set AZURE_SUBSCRIPTION_ID "${{ vars.AZURE_SUBSCRIPTION_ID }}"
-          azd env set AZURE_TENANT_ID "${{ vars.AZURE_TENANT_ID }}"
-          principal_id="$(az ad sp show --id "${{ vars.AZURE_CLIENT_ID }}" --query id -o tsv)"
-          azd env set AZURE_PRINCIPAL_ID "${principal_id}"
-          azd env set AZURE_PRINCIPAL_TYPE ServicePrincipal
-
-      - name: Override CI-only Bicep params
-        shell: bash
-        run: |
-          python3 - <<'PY'
-          import json
-          path = 'infra/main.parameters.json'
-          with open(path) as fh:
-              data = json.load(fh)
-          data['parameters']['createGhaDeployerSubscriptionRoles'] = { 'value': False }
-          data['parameters']['createGhaDeployerResourceRoles'] = { 'value': False }
-          data['parameters']['createDeveloperAndOperatorRoles'] = { 'value': False }
-          with open(path, 'w') as fh:
-              json.dump(data, fh, indent=2)
-              fh.write('\n')
-          PY
-
-      - name: Refresh azd environment outputs
-        run: azd env refresh --no-prompt || true
-
-      - name: Hydrate azd env vars from Azure resources
-        shell: bash
-        run: |
-          RG=$(az group list --tag azd-env-name=${AZURE_ENV_NAME} --query "[0].name" -o tsv)
-          if [ -z "$RG" ]; then echo "ERROR: no RG found with azd-env-name=${AZURE_ENV_NAME}"; exit 1; fi
-          azd env set AZURE_RESOURCE_GROUP "$RG"
-          SWA_NAME=$(az resource list -g "$RG" --resource-type Microsoft.Web/staticSites --query "[0].name" -o tsv)
-          SWA_HOST=$(az staticwebapp show -n "$SWA_NAME" -g "$RG" --query defaultHostname -o tsv)
-          azd env set AZURE_STATIC_WEB_APP_NAME "$SWA_NAME"
-          azd env set AZURE_STATIC_WEB_APP_HOSTNAME "$SWA_HOST"
-
-      - name: Deploy frontend
-        run: azd deploy frontend --no-prompt
