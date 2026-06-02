@@ -3,6 +3,7 @@ package com.example.ghasdefender.web;
 import com.example.ghasdefender.domain.Item;
 import com.example.ghasdefender.repo.ItemRepository;
 import com.example.ghasdefender.web.dto.ItemRequest;
+import jakarta.persistence.EntityManager;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.HttpStatus;
@@ -23,9 +24,11 @@ import org.springframework.web.server.ResponseStatusException;
 public class ItemController {
 
     private final ItemRepository itemRepository;
+    private final EntityManager entityManager;
 
-    public ItemController(ItemRepository itemRepository) {
+    public ItemController(ItemRepository itemRepository, EntityManager entityManager) {
         this.itemRepository = itemRepository;
+        this.entityManager = entityManager;
     }
 
     @GetMapping
@@ -58,7 +61,11 @@ public class ItemController {
     }
 
     @GetMapping("/search")
+    @SuppressWarnings("unchecked")
     public List<Item> search(@RequestParam("q") String query) {
-        return itemRepository.searchByName(query);
+        // SEEDED VULN #1 — see scripts/seed-vulnerabilities.md
+        return entityManager
+                .createNativeQuery("SELECT * FROM items WHERE name LIKE '%" + query + "%'", Item.class)
+                .getResultList();
     }
 }
