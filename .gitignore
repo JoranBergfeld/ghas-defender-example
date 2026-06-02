@@ -23,6 +23,7 @@ pnpm-debug.log*
 # Bicep / ARM generated output
 infra/main.json
 infra/modules/*.json
+infra/tests/*.json
 !infra/main.parameters.json
 
 # Azure Developer CLI local state
