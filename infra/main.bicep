@@ -31,6 +31,9 @@ param createGhaDeployerSubscriptionRoles bool = true
 @description('When true (local-first deploy) Bicep creates the resource-scoped role assignments (AKS RBAC, AcrPush, KV access, SWA Contributor) for the gha-deployer managed identity. When false (CI runs) Bicep skips them — they were created during the initial local azd up and re-evaluating guid() drifts the assignment names which Azure rejects.')
 param createGhaDeployerResourceRoles bool = true
 
+@description('When true (local-first deploy) Bicep creates the developer/operator role assignments scoped to KV, ACR and AKS for the principal running azd. When false (CI runs) Bicep skips them because the CI service principal is the same identity as id-gha-deployer, so the assignments collide on principal+role+scope.')
+param createDeveloperAndOperatorRoles bool = true
+
 var resourceGroupName = 'rg-ghas-defender-${environmentName}'
 var ghaDeployerName = 'id-gha-deployer'
 var contributorRoleDefinitionId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')
@@ -98,6 +101,7 @@ module keyVault 'modules/keyvault.bicep' = {
   scope: resourceGroup
   params: {
     backendPrincipalId: identity.outputs.backendPrincipalId
+    createDeveloperRole: createDeveloperAndOperatorRoles
     developerPrincipalId: principalId
     developerPrincipalType: principalType
     environmentName: environmentName
@@ -114,6 +118,7 @@ module aks 'modules/aks.bicep' = {
     aksSubnetId: network.outputs.aksSubnetId
     backendIdentityName: identity.outputs.backendIdentityName
     createGhaDeployerRoles: createGhaDeployerResourceRoles
+    createOperatorRole: createDeveloperAndOperatorRoles
     environmentName: environmentName
     ghaDeployerPrincipalId: identity.outputs.ghaDeployerPrincipalId
     location: location
@@ -128,6 +133,7 @@ module acr 'modules/acr.bicep' = {
   scope: resourceGroup
   params: {
     backendPrincipalId: identity.outputs.backendPrincipalId
+    createDeveloperRole: createDeveloperAndOperatorRoles
     createGhaDeployerRoles: createGhaDeployerResourceRoles
     developerPrincipalId: principalId
     developerPrincipalType: principalType

@@ -10,6 +10,7 @@ param developerPrincipalId string
   'ServicePrincipal'
 ])
 param developerPrincipalType string = 'User'
+param createDeveloperRole bool = true
 param backendPrincipalId string
 
 var keyVaultName = 'kv-${uniqueString(resourceGroup().id)}'
@@ -37,7 +38,7 @@ resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
   }
 }
 
-resource developerKeyVaultAdministrator 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+resource developerKeyVaultAdministrator 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (createDeveloperRole) {
   scope: keyVault
   name: guid(keyVault.id, 'developer', developerPrincipalId, keyVaultAdministratorRoleDefinitionId)
   properties: {
