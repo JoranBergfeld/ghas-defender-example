@@ -43,7 +43,7 @@ resource ghaAcrPush 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
 
 resource developerAcrPush 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   scope: registry
-  name: guid(registry.id, 'developer', acrPushRoleDefinitionId)
+  name: guid(registry.id, 'developer', developerPrincipalId, acrPushRoleDefinitionId)
   properties: {
     principalId: developerPrincipalId
     principalType: developerPrincipalType

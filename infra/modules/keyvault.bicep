@@ -39,7 +39,7 @@ resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
 
 resource developerKeyVaultAdministrator 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   scope: keyVault
-  name: guid(keyVault.id, 'developer', keyVaultAdministratorRoleDefinitionId)
+  name: guid(keyVault.id, 'developer', developerPrincipalId, keyVaultAdministratorRoleDefinitionId)
   properties: {
     principalId: developerPrincipalId
     principalType: developerPrincipalType

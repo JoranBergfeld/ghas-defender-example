@@ -110,7 +110,7 @@ resource ghaClusterRbacAdmin 'Microsoft.Authorization/roleAssignments@2022-04-01
 
 resource operatorClusterRbacAdmin 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   scope: cluster
-  name: guid(cluster.id, 'operator', clusterRbacAdminRoleDefinitionId)
+  name: guid(cluster.id, 'operator', operatorPrincipalId, clusterRbacAdminRoleDefinitionId)
   properties: {
     principalId: operatorPrincipalId
     principalType: operatorPrincipalType
