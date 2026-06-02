@@ -173,6 +173,7 @@ output AZURE_CONTAINER_REGISTRY_NAME string = acr.outputs.registryName
 output AZURE_AKS_CLUSTER_NAME string = aks.outputs.clusterName
 output AZURE_AKS_NAMESPACE string = 'app'
 output AZURE_STATIC_WEB_APP_NAME string = staticWebApp.outputs.staticWebAppName
+output AZURE_STATIC_WEB_APP_HOSTNAME string = staticWebApp.outputs.staticWebAppDefaultHostname
 output AZURE_KEY_VAULT_NAME string = keyVault.outputs.keyVaultName
 output AZURE_KEY_VAULT_URI string = keyVault.outputs.keyVaultUri
 output AZURE_POSTGRES_HOST string = postgres.outputs.postgresHost
