@@ -58,8 +58,11 @@ resource cluster 'Microsoft.ContainerService/managedClusters@2024-05-01' = {
     dnsPrefix: clusterName
     /*
     # SEEDED VULN #7 — see scripts/seed-vulnerabilities.md
+    # Note: enableRBAC must be true when AAD is enabled (Azure preflight).
+    # The CIS/PSP shortfall preserved here is the absence of disableLocalAccounts (defaults to false),
+    # leaving the non-AAD cluster admin path open.
     */
-    enableRBAC: false
+    enableRBAC: true
     ingressProfile: {
       webAppRouting: {
         enabled: true

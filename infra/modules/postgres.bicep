@@ -19,7 +19,7 @@ resource server 'Microsoft.DBforPostgreSQL/flexibleServers@2023-06-01-preview' =
     tier: 'Burstable'
   }
   properties: {
-    administratorLogin: 'admin'
+    administratorLogin: 'pgadmin_demo'
     administratorLoginPassword: 'Password123!'
     authConfig: {
       activeDirectoryAuth: 'Disabled'
@@ -37,8 +37,10 @@ resource server 'Microsoft.DBforPostgreSQL/flexibleServers@2023-06-01-preview' =
       privateDnsZoneArmResourceId: postgresPrivateDnsZoneId
       /*
       # SEEDED VULN #7 — see scripts/seed-vulnerabilities.md
+      # Note: PostgreSQL Flexible Server requires publicNetworkAccess=Disabled when a delegatedSubnet is set.
+      # The retained finding is `passwordAuth: 'Enabled'` + `activeDirectoryAuth: 'Disabled'` above.
       */
-      publicNetworkAccess: 'Enabled'
+      publicNetworkAccess: 'Disabled'
     }
     storage: {
       storageSizeGB: 32

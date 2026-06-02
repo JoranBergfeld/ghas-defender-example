@@ -21,11 +21,10 @@ function Expand-AzdTemplate([string] $Path) {
 }
 
 $certManagerVersion = "v1.15.3"
-$letsEncryptEmail = if ([string]::IsNullOrWhiteSpace($env:LETSENCRYPT_EMAIL)) {
-    "demo@ghas-defender.example.invalid"
-} else {
-    $env:LETSENCRYPT_EMAIL
-}
+# If LETSENCRYPT_EMAIL is unset, the ClusterIssuer is created without a contact email.
+# LE rejects placeholder domains (example.com, *.invalid, *.test). Set to a real email
+# you control (or omit entirely) before running `azd up` in production.
+$letsEncryptEmail = $env:LETSENCRYPT_EMAIL
 
 Require-Env "AZURE_RESOURCE_GROUP"
 Require-Env "AZURE_AKS_CLUSTER_NAME"
@@ -50,9 +49,8 @@ if (-not (Get-Command kubelogin -ErrorAction SilentlyContinue) -or -not (Get-Com
 az aks get-credentials `
     --resource-group $env:AZURE_RESOURCE_GROUP `
     --name $env:AZURE_AKS_CLUSTER_NAME `
-    --overwrite-existing
-
-kubelogin convert-kubeconfig -l azurecli
+    --overwrite-existing `
+    --admin
 
 kubectl apply -f src/backend/k8s/namespace.yaml
 Expand-AzdTemplate "src/backend/k8s/serviceaccount.tmpl.yaml" | kubectl apply -f -
@@ -119,6 +117,8 @@ kubectl -n cert-manager rollout status deploy/cert-manager --timeout=180s | Out-
 kubectl -n cert-manager rollout status deploy/cert-manager-cainjector --timeout=180s | Out-Null
 kubectl -n cert-manager rollout status deploy/cert-manager-webhook --timeout=180s | Out-Null
 
+$acmeEmailLine = if ([string]::IsNullOrWhiteSpace($letsEncryptEmail)) { "" } else { "    email: $letsEncryptEmail" }
+
 $clusterIssuer = @"
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
@@ -127,7 +127,7 @@ metadata:
 spec:
   acme:
     server: https://acme-v02.api.letsencrypt.org/directory
-    email: $letsEncryptEmail
+$acmeEmailLine
     privateKeySecretRef:
       name: letsencrypt-prod-account
     solvers:

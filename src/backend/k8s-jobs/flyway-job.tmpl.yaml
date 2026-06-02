@@ -38,7 +38,7 @@ spec:
             - name: POSTGRES_DATABASE
               value: appdb
             - name: POSTGRES_USERNAME
-              value: pgadmin
+              value: pgadmin_demo
             - name: AZURE_KEY_VAULT_URI
               value: "{{ .Env.AZURE_KEY_VAULT_URI }}"
             - name: CORS_ALLOWED_ORIGINS

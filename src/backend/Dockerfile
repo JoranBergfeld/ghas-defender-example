@@ -3,7 +3,7 @@ FROM eclipse-temurin:21-jdk
 
 WORKDIR /app
 COPY . .
-RUN ./mvnw -B -DskipTests package
+RUN ./mvnw -B -DskipTests package && cp target/*.jar /app/app.jar
 
 USER root
-ENTRYPOINT ["java", "-jar", "target/ghas-defender-backend.jar"]
+ENTRYPOINT ["java", "-jar", "/app/app.jar"]
