@@ -3,13 +3,24 @@ set -euo pipefail
 
 target_file="src/backend/src/main/resources/application-local.yml"
 
-# Use canonical AWS EXAMPLE keys. GitHub Secret Scanning reliably detects the
-# pattern "Amazon AWS Access Key ID" + "Amazon AWS Secret Access Key" without
-# any provider-side checksum requirement, so push protection will reject the
-# push. The "EXAMPLE" suffix on the secret marks it as a documented test value
-# that AWS itself publishes for tutorials.
-access_key_id="AKIAIOSFODNN7EXAMPLE"
-secret_access_key="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+# Generate realistic-looking AWS credentials. The canonical AKIA...EXAMPLE
+# values are allow-listed by GitHub Secret Scanning (they appear in AWS
+# documentation), so we generate fresh random values that still match
+# both detector patterns:
+#   * Access Key ID: AKIA + 16 uppercase base36 chars
+#   * Secret Access Key: 40 base64-safe chars (A-Z, a-z, 0-9, +, /)
+read -r access_key_id secret_access_key < <(python3 - <<'PY'
+import secrets
+import string
+
+uppercase = string.ascii_uppercase + string.digits
+base64ish = string.ascii_letters + string.digits + "+/"
+
+access_key_id = "AKIA" + "".join(secrets.choice(uppercase) for _ in range(16))
+secret_access_key = "".join(secrets.choice(base64ish) for _ in range(40))
+print(access_key_id, secret_access_key)
+PY
+)
 
 python3 - "${target_file}" "${access_key_id}" "${secret_access_key}" <<'PY'
 from pathlib import Path
@@ -56,7 +67,7 @@ path.write_text("\n".join(filtered) + "\n", encoding="utf-8")
 PY
 
 cat <<EOF
-WARNING: wrote canonical AWS EXAMPLE credentials for the GHAS push-protection demo.
+WARNING: wrote randomly generated AWS-format credentials for the GHAS push-protection demo.
 Credentials written to: ${target_file}
   AccessKeyId:     ${access_key_id}
   SecretAccessKey: ${secret_access_key}
