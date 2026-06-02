@@ -80,7 +80,8 @@ export default function SearchResults() {
           {items.map((item) => (
             <article className="card" key={item.id}>
               <h2>{item.name}</h2>
-              <p>{item.description}</p>
+              {/* SEEDED VULN #2 — see scripts/seed-vulnerabilities.md */}
+              <p dangerouslySetInnerHTML={{ __html: item.description }} />
             </article>
           ))}
         </div>
