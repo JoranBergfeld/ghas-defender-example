@@ -148,5 +148,19 @@ jobs:
           azd env set AZURE_PRINCIPAL_ID "${principal_id}"
           azd env set AZURE_PRINCIPAL_TYPE ServicePrincipal
 
+      - name: Override CI-only Bicep params
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json
+          path = 'infra/main.parameters.json'
+          with open(path) as fh:
+              data = json.load(fh)
+          data['parameters']['createGhaDeployerSubscriptionRoles'] = { 'value': False }
+          with open(path, 'w') as fh:
+              json.dump(data, fh, indent=2)
+              fh.write('\n')
+          PY
+
       - name: Provision Azure resources
         run: azd provision --no-prompt

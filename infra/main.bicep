@@ -25,6 +25,9 @@ param githubRepo string = 'ghas-defender-example'
 @description('Defender-assigned hierarchy identifier (GUID) for the GitHub organization. Obtained after completing the manual OAuth onboarding in the Azure portal. Leave empty to skip provisioning the GitHub security connector.')
 param githubConnectorHierarchyId string = ''
 
+@description('When true (local-first deploy) Bicep creates the Contributor and User Access Administrator role assignments needed by the gha-deployer managed identity. When false (subsequent CI runs) Bicep skips them because the same principal is already running the deployment and the assignments cannot be reconciled by name afterwards.')
+param createGhaDeployerSubscriptionRoles bool = true
+
 var resourceGroupName = 'rg-ghas-defender-${environmentName}'
 var ghaDeployerName = 'id-gha-deployer'
 var contributorRoleDefinitionId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')
@@ -69,7 +72,7 @@ module identity 'modules/identity.bicep' = {
   }
 }
 
-resource ghaSubscriptionContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+resource ghaSubscriptionContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (createGhaDeployerSubscriptionRoles) {
   name: guid(subscription().id, resourceGroupName, ghaDeployerName, contributorRoleDefinitionId)
   properties: {
     principalId: identity.outputs.ghaDeployerPrincipalId
@@ -78,7 +81,7 @@ resource ghaSubscriptionContributor 'Microsoft.Authorization/roleAssignments@202
   }
 }
 
-resource ghaSubscriptionUserAccessAdmin 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+resource ghaSubscriptionUserAccessAdmin 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (createGhaDeployerSubscriptionRoles) {
   name: guid(subscription().id, resourceGroupName, ghaDeployerName, userAccessAdministratorRoleDefinitionId)
   properties: {
     principalId: identity.outputs.ghaDeployerPrincipalId
