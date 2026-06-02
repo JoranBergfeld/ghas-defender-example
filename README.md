@@ -101,3 +101,32 @@ Troubleshooting guidance will cover Defender plan propagation, GitHub connector 
 ## License
 
 This project is licensed under the MIT License. See [LICENSE](LICENSE).
+
+## CI/CD
+
+[![infra](https://github.com/JoranBergfeld/ghas-defender-example/actions/workflows/infra.yml/badge.svg?branch=main)](https://github.com/JoranBergfeld/ghas-defender-example/actions/workflows/infra.yml)
+[![backend-ci](https://github.com/JoranBergfeld/ghas-defender-example/actions/workflows/backend-ci.yml/badge.svg?branch=main)](https://github.com/JoranBergfeld/ghas-defender-example/actions/workflows/backend-ci.yml)
+[![frontend-ci](https://github.com/JoranBergfeld/ghas-defender-example/actions/workflows/frontend-ci.yml/badge.svg?branch=main)](https://github.com/JoranBergfeld/ghas-defender-example/actions/workflows/frontend-ci.yml)
+
+This repository uses three path-filtered GitHub Actions workflows:
+
+- `infra` runs Bicep build and subscription `what-if` on PRs that change `infra/**` or `azure.yaml`; branch pushes run `azd provision` through Azure OIDC.
+- `backend-ci` runs Maven verify, Java/Kotlin CodeQL, and dependency review on PRs; pushes to `secure` and `vulnerable` run `azd deploy backend`.
+- `frontend-ci` runs npm install, lint, Vitest, build, and JavaScript/TypeScript CodeQL; pushes to `secure` and `vulnerable` run `azd deploy frontend`.
+
+Container image scanning is intentionally not performed in CI. Defender for Containers scans the image after it reaches ACR, and the AKS admission controller is the blocking point for the vulnerable-branch demo.
+
+### Bootstrap
+
+Run the one-time bootstrap in this order after cloning the repository:
+
+```bash
+az login
+azd auth login
+azd env new demo
+azd env set AZURE_LOCATION westeurope
+azd up
+./scripts/setup-repo.sh
+```
+
+`azd up` provisions Azure infrastructure, the `id-gha-deployer` managed identity, and its federated credentials. `./scripts/setup-repo.sh` reads the local `azd` environment values, sets the GitHub repo variables, enables secret scanning with push protection, enables Dependabot security updates, and applies branch protection for `main`, `secure`, and `vulnerable`.
