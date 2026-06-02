@@ -70,7 +70,8 @@ jobs:
           languages: java-kotlin
           config-file: ./.github/codeql-config.yml
 
-      - uses: github/codeql-action/autobuild@v3
+      - name: Build backend with Maven
+        run: ./mvnw -f src/backend/pom.xml -B -DskipTests package
 
       - uses: github/codeql-action/analyze@v3
         with:
