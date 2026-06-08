@@ -25,9 +25,9 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '21'
@@ -38,7 +38,7 @@ jobs:
 
       - name: Upload Surefire reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: backend-surefire-reports
           path: |
@@ -54,15 +54,15 @@ jobs:
       packages: read
       security-events: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '21'
           cache: maven
 
-      - uses: github/codeql-action/init@v3
+      - uses: github/codeql-action/init@v4
         with:
           languages: java-kotlin
           config-file: ./.github/codeql-config.yml
@@ -70,7 +70,7 @@ jobs:
       - name: Build backend with Maven
         run: ./mvnw -f src/backend/pom.xml -B -DskipTests package
 
-      - uses: github/codeql-action/analyze@v3
+      - uses: github/codeql-action/analyze@v4
         with:
           category: /language:java-kotlin
           output: codeql-results
@@ -127,6 +127,6 @@ jobs:
       contents: read
       pull-requests: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/dependency-review-action@v4
+      - uses: actions/dependency-review-action@v5
